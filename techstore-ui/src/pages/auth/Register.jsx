@@ -41,13 +41,19 @@ const Register = () => {
 
         setLoading(true);
         try {
-            await AuthService.register(formData);
+            const { confirmPassword, ...registerPayload } = formData;
+            await AuthService.register(registerPayload);
             setSuccessMsg("Votre compte a été créé avec succès ! Redirection vers la connexion...");
             setTimeout(() => {
                 navigate('/login');
             }, 1500);
         } catch (err) {
-            const msg = err.message || err.error || err.data?.message || "Erreur lors de l'inscription.";
+            console.error("Erreur register:", err);
+            const msg = (typeof err === 'string' && err) ||
+                err.message ||
+                err.data?.message ||
+                err.response?.data?.message ||
+                "Erreur lors de l'inscription.";
             setError(String(msg));
         } finally {
             setLoading(false);
@@ -90,7 +96,7 @@ const Register = () => {
                         label="Nom" 
                         name="lastName" 
                         value={formData.lastName}
-                        placeholder="Hack" 
+                        placeholder="Tenwo" 
                         onChange={handleChange} 
                         required 
                     />
@@ -100,7 +106,7 @@ const Register = () => {
                             name="email" 
                             type="email" 
                             value={formData.email}
-                            placeholder="valdes@example.com" 
+                            placeholder="valdestenwo@gmail.com" 
                             onChange={handleChange} 
                             required 
                         />
