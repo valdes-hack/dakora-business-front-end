@@ -18,7 +18,7 @@ export default defineConfig({
             // Si le serveur est en veille (cold start), sert le cache PWA au bout de 3.5s au lieu de bloquer
             urlPattern: ({ url, request }) => 
               request.method === 'GET' && 
-              url.hostname === 'techelectronic-api.onrender.com' &&
+              (url.hostname.includes('onrender.com') || url.hostname === 'localhost') &&
               !url.pathname.includes('/cart') &&
               !url.pathname.includes('/admin') &&
               !url.pathname.includes('/auth'),

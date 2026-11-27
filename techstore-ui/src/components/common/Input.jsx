@@ -12,8 +12,8 @@ const Input = ({ label, value, onChange, name, type = "text", error, theme, righ
                 <input
                     type={type}
                     name={name}
-                    value={value || ""} // ✨ IMPORTANT : permet de lire l'état
-                    onChange={onChange} // ✨ IMPORTANT : permet d'écrire
+                    {...(value !== undefined ? { value: value ?? "" } : {})}
+                    onChange={onChange}
                     {...props}
                     className={`w-full px-5 py-4 rounded-apple text-sm font-bold transition-all duration-300 border-2 outline-none
                         ${theme === 'dark' 
