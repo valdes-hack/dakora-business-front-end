@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
     ChevronRight, Zap, ShieldCheck, Truck, Headphones, Star,
@@ -12,14 +12,14 @@ import { getFastCache, setFastCache } from '../../utils/fastCache';
 
 // ─── UTILITAIRE IMAGE ───
 const getProductImage = (p) => {
-    if (!p) return "https://images.unsplash.com/photo-1526406915894-7bcd65f60845?w=600";
+    if (!p) return "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=600&q=80";
     if (p.mainImageUrl) return p.mainImageUrl;
     if (p.imageUrl) return getFullImageUrl(p.imageUrl);
     if (p.images && p.images.length > 0) {
         const primaryImg = p.images.find(img => img.isPrimary) || p.images[0];
         if (primaryImg?.url) return getFullImageUrl(primaryImg.url);
     }
-    return "https://images.unsplash.com/photo-1526406915894-7bcd65f60845?w=600";
+    return "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=600&q=80";
 };
 
 // ─── COMPOSANTS RÉUTILISABLES ───
@@ -180,7 +180,7 @@ const Home = () => {
             subtitle: "Poussins de qualité, couveuses fiables et équipements d'élevage.",
             cta: "Explorer",
             ctaLink: "/catalog",
-            image: "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=2000&q=80",
+            image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80",
             accent: "from-indigo-500 to-purple-600",
         });
     }

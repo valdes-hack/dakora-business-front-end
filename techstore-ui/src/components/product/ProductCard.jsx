@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Plus, ShieldCheck, Heart, Zap, Check, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -63,7 +63,7 @@ const ProductCard = ({ product, viewMode = 'grid', imageFit: propImageFit }) => 
     const isOutOfStock = availableStock <= 0;
 
     // ── Image ──
-    let displayImage = "https://images.unsplash.com/photo-1510557880182-3d4d3cba3f21?w=600";
+    let displayImage = "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&w=600&q=80";
     if (product.imageUrl) {
         displayImage = getFullImageUrl(product.imageUrl);
     } else if (product.images?.length > 0) {
