@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Sparkles, Target, Eye, ShieldCheck, Truck, Wrench,
@@ -102,29 +102,29 @@ const About = () => {
             {/* 2. STATISTIQUES DYNAMIQUES RÉELLES DE LA PLATEFORME               */}
             {/* ═════════════════════════════════════════════════════════════════ */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-[#121526] border border-white/5 text-center shadow-lg">
-                    <p className="text-2xl sm:text-3xl font-black text-white">
+                <div className="p-5 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 text-center shadow-lg">
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                         {dynamicStats.totalProducts != null ? dynamicStats.totalProducts : '—'}
                     </p>
                     <p className="text-xs text-blue-400 font-bold uppercase tracking-wider mt-1">Produits en Stock</p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-[#121526] border border-white/5 text-center shadow-lg">
-                    <p className="text-2xl sm:text-3xl font-black text-white">
+                <div className="p-5 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 text-center shadow-lg">
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                         {dynamicStats.totalCategories != null ? dynamicStats.totalCategories : '—'}
                     </p>
                     <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider mt-1">Rayons & Spécialités</p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-[#121526] border border-white/5 text-center shadow-lg">
-                    <p className="text-2xl sm:text-3xl font-black text-white">
+                <div className="p-5 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 text-center shadow-lg">
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                         {dynamicStats.totalClients != null ? dynamicStats.totalClients : '—'}
                     </p>
                     <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mt-1">Éleveurs Inscrits</p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-[#121526] border border-white/5 text-center shadow-lg">
-                    <p className="text-2xl sm:text-3xl font-black text-white">
+                <div className="p-5 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 text-center shadow-lg">
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                         +{dynamicStats.yearsExperience || 4} Ans
                     </p>
                     <p className="text-xs text-amber-400 font-bold uppercase tracking-wider mt-1">D'Expérience Terrain</p>
@@ -134,15 +134,15 @@ const About = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 3. HISTOIRE DE L'ENTREPRISE                                       */}
             {/* ═════════════════════════════════════════════════════════════════ */}
-            <div className="p-6 sm:p-10 rounded-3xl bg-[#121526] border border-white/5 shadow-xl space-y-4">
+            <div className="p-6 sm:p-10 rounded-3xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 shadow-xl space-y-4">
                 <div className="flex items-center gap-2 text-blue-400 text-xs font-black uppercase tracking-wider">
                     <Clock size={16} />
                     <span>Depuis {content.historyYear || '2020'}</span>
                 </div>
-                <h2 className="text-2xl font-black text-white tracking-tight">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                     {content.historyTitle || 'Notre Histoire & Genèse'}
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-normal whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 leading-relaxed font-normal whitespace-pre-line">
                     {content.historyText || content.generalDescription || "DAKORA BUSINESS est née d'une vision : moderniser l'élevage et l'aviculture en Afrique en fournissant du matériel fiable, durable et à la portée de chaque entrepreneur agricole."}
                 </p>
             </div>
@@ -156,8 +156,8 @@ const About = () => {
                         <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 text-xl">
                             <Target size={24} />
                         </div>
-                        <h3 className="text-lg font-black text-white">Notre Mission</h3>
-                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">Notre Mission</h3>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
                             {content.missionText || "Démocratiser l'accès aux technologies d'élevage modernes afin d'accroître la productivité, la sécurité sanitaire et la rentabilité de chaque éleveur."}
                         </p>
                     </div>
@@ -168,8 +168,8 @@ const About = () => {
                         <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xl">
                             <Eye size={24} />
                         </div>
-                        <h3 className="text-lg font-black text-white">Notre Vision</h3>
-                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">Notre Vision</h3>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
                             {content.visionText || "Devenir la référence incontournable du matériel d'élevage intelligent en Afrique Centrale d'ici 2030."}
                         </p>
                     </div>
@@ -182,18 +182,18 @@ const About = () => {
             {values.length > 0 && (
                 <div className="space-y-6">
                     <div className="text-center">
-                        <h2 className="text-2xl font-black text-white tracking-tight">Nos Valeurs</h2>
-                        <p className="text-xs text-gray-400 mt-1">Les principes qui guident nos actions au quotidien</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Nos Valeurs</h2>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Les principes qui guident nos actions au quotidien</p>
                     </div>
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {values.map((val, idx) => (
-                            <div key={idx} className="p-6 rounded-2xl bg-[#121526] border border-white/5 space-y-2 shadow-lg">
+                            <div key={idx} className="p-6 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 space-y-2 shadow-lg">
                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-2">
                                     <Sparkles size={18} />
                                 </div>
-                                <h3 className="text-sm font-black text-white">{val.title}</h3>
-                                <p className="text-xs text-gray-400 leading-relaxed">{val.description}</p>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">{val.title}</h3>
+                                <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">{val.description}</p>
                             </div>
                         ))}
                     </div>
@@ -206,18 +206,18 @@ const About = () => {
             {commitments.length > 0 && (
                 <div className="space-y-6">
                     <div className="text-center">
-                        <h2 className="text-2xl font-black text-white tracking-tight">Nos Engagements</h2>
-                        <p className="text-xs text-gray-400 mt-1">Une garantie de qualité et un service après-vente permanent</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Nos Engagements</h2>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Une garantie de qualité et un service après-vente permanent</p>
                     </div>
 
                     <div className="grid sm:grid-cols-3 gap-5">
                         {commitments.map((c, idx) => (
-                            <div key={idx} className="p-6 rounded-2xl bg-[#121526] border border-white/5 space-y-2 shadow-lg">
+                            <div key={idx} className="p-6 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 space-y-2 shadow-lg">
                                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
                                     <CheckCircle2 size={18} />
                                 </div>
-                                <h3 className="text-sm font-black text-white">{c.title}</h3>
-                                <p className="text-xs text-gray-400 leading-relaxed">{c.description}</p>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">{c.title}</h3>
+                                <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">{c.description}</p>
                             </div>
                         ))}
                     </div>
@@ -230,13 +230,13 @@ const About = () => {
             {team.length > 0 && (
                 <div className="space-y-6">
                     <div className="text-center">
-                        <h2 className="text-2xl font-black text-white tracking-tight">Notre Équipe</h2>
-                        <p className="text-xs text-gray-400 mt-1">Des experts dévoués à votre réussite</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Notre Équipe</h2>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Des experts dévoués à votre réussite</p>
                     </div>
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {team.filter(m => m.isVisible !== false).map((m, idx) => (
-                            <div key={idx} className="p-6 rounded-2xl bg-[#121526] border border-white/5 space-y-3 shadow-lg text-center">
+                            <div key={idx} className="p-6 rounded-2xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 space-y-3 shadow-lg text-center">
                                 <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 p-1 shadow-xl">
                                     <div className="w-full h-full rounded-full bg-[#121526] flex items-center justify-center font-black text-white text-xl overflow-hidden">
                                         {m.photoUrl ? (
@@ -247,10 +247,10 @@ const About = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black text-white">{m.name}</h3>
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white">{m.name}</h3>
                                     <p className="text-xs text-blue-400 font-bold mt-0.5">{m.role}</p>
                                 </div>
-                                {m.bio && <p className="text-[11px] text-gray-400 leading-relaxed">{m.bio}</p>}
+                                {m.bio && <p className="text-[11px] text-slate-500 dark:text-gray-400 leading-relaxed">{m.bio}</p>}
                             </div>
                         ))}
                     </div>
@@ -260,10 +260,10 @@ const About = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 8. COORDONNÉES ET CONTACT                                         */}
             {/* ═════════════════════════════════════════════════════════════════ */}
-            <div className="p-8 rounded-3xl bg-[#121526] border border-white/5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="p-8 rounded-3xl bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                     <h2 className="text-xl font-black text-white">Une question ? Un projet d'élevage ?</h2>
-                    <p className="text-xs text-gray-400 mt-1">Notre équipe technique est disponible pour vous conseiller.</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Notre équipe technique est disponible pour vous conseiller.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">

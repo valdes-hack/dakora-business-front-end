@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import AdminSidebar, { UserAvatar } from './AdminSidebar';
 import NotificationBell from './NotificationBell';
-import { ListFilter, Menu, Sun, Moon, ChevronDown, LogOut, Settings } from 'lucide-react';
+import AdminGlobalSearch from './AdminGlobalSearch';
+import { ListFilter, Menu, Sun, Moon, ChevronDown, LogOut, Settings, Search } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,11 +16,24 @@ const AdminLayout = ({ children, filters }) => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [isAdminSearchOpen, setIsAdminSearchOpen] = useState(false);
 
     const { theme, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const isDark = theme === 'dark';
+
+    // Raccourci Ctrl+K / Cmd+K pour recherche globale admin
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setIsAdminSearchOpen(true);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
 
     // Fermer le menu user en cliquant ailleurs
     useEffect(() => {
@@ -96,10 +110,43 @@ const AdminLayout = ({ children, filters }) => {
                         <button onClick={() => setIsMobileNavOpen(true)} className="lg:hidden p-2.5 bg-indigo-600/10 text-indigo-500 rounded-xl">
                             <Menu size={22}/>
                         </button>
-                        <h1 className="font-black italic tracking-tighter text-indigo-500 text-2xl select-none uppercase">AdminHub</h1>
+                        <h1 className="font-black italic tracking-tighter text-indigo-500 text-xl sm:text-2xl select-none uppercase">AdminHub</h1>
                     </div>
 
-                    <div className="flex items-center space-x-3 md:space-x-4">
+                    {/* 🔍 BARRE DE RECHERCHE GLOBALE ADMIN */}
+                    <button
+                        type="button"
+                        onClick={() => setIsAdminSearchOpen(true)}
+                        className={`hidden md:flex items-center justify-between gap-3 flex-1 max-w-md mx-4 px-4 py-2 rounded-2xl border text-xs font-semibold transition-all cursor-pointer ${
+                            isDark
+                                ? 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200/70 hover:text-slate-800'
+                        }`}
+                    >
+                        <span className="flex items-center gap-2.5 truncate">
+                            <Search size={15} className="text-indigo-500 shrink-0" />
+                            <span className="truncate">Rechercher dans l'admin (produits, collections, commandes...)</span>
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border shrink-0 ${
+                            isDark ? 'bg-white/10 border-white/10 text-gray-300' : 'bg-white border-slate-200 text-slate-500'
+                        }`}>
+                            Ctrl K
+                        </span>
+                    </button>
+
+                    <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+                        {/* 🔍 Bouton recherche mobile */}
+                        <button
+                            onClick={() => setIsAdminSearchOpen(true)}
+                            className={`md:hidden p-2.5 rounded-xl border transition-all flex items-center justify-center ${
+                                isDark
+                                    ? 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                                    : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            title="Rechercher dans l'admin"
+                        >
+                            <Search size={18} />
+                        </button>
                         {/* 🌙 / ☀️ TOGGLE THÈME */}
                         <button
                             onClick={toggleTheme}
@@ -227,6 +274,7 @@ const AdminLayout = ({ children, filters }) => {
                     </div>
                 </aside>
             )}
+            <AdminGlobalSearch isOpen={isAdminSearchOpen} onClose={() => setIsAdminSearchOpen(false)} />
         </div>
     );
 };

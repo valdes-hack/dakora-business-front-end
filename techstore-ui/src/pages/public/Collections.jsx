@@ -376,11 +376,7 @@ const Collections = () => {
                                                 <Package size={13} className="text-blue-400" />
                                                 {col.productCount ?? 0} produits
                                             </span>
-                                            <span>•</span>
-                                            <span className="flex items-center gap-1">
-                                                <Eye size={13} className="text-purple-400" />
-                                                {((col.sortOrder || 1) * 2.1 + (col.productCount || 0) * 0.5).toFixed(1)}K vues
-                                            </span>
+
                                         </div>
 
                                         <Link

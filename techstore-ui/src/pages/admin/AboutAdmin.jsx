@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AboutService from '../../services/about.service';
 import AdminService from '../../services/admin.service';
@@ -172,7 +172,7 @@ const AboutAdmin = () => {
 
     return (
         <AdminLayout>
-            <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 bg-[#0b0e14] text-gray-300 min-h-full rounded-[2.5rem]">
+            <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 text-slate-800 dark:text-gray-300 min-h-full rounded-[2.5rem]">
 
                 {/* ── HEADER CMS ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/5">
@@ -180,7 +180,7 @@ const AboutAdmin = () => {
                         <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase tracking-widest mb-1">
                             <Sparkles size={14} /> Gestionnaire de Contenu (CMS)
                         </div>
-                        <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-white flex items-center gap-3">
+                        <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white flex items-center gap-3">
                             <FileText size={28} className="text-indigo-500" /> Page « À Propos »
                         </h1>
                         <p className="text-xs text-gray-400 mt-1">
@@ -193,14 +193,14 @@ const AboutAdmin = () => {
                             href="/a-propos"
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all border border-white/5"
+                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 hover:text-slate-900 dark:text-white transition-all border border-white/5"
                         >
                             <Eye size={14} /> Voir en direct
                         </a>
                         <button
                             onClick={() => handleSave(false)}
                             disabled={saving || publishing}
-                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all border border-white/10"
+                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-900 dark:text-white transition-all border border-white/10"
                         >
                             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                             Enregistrer brouillon
@@ -208,7 +208,7 @@ const AboutAdmin = () => {
                         <button
                             onClick={() => handleSave(true)}
                             disabled={saving || publishing}
-                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
+                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
                         >
                             {publishing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                             Publier en ligne
@@ -220,7 +220,7 @@ const AboutAdmin = () => {
                 <div className="grid lg:grid-cols-12 gap-6 items-start">
                     
                     {/* Menu des 10 sections */}
-                    <div className="lg:col-span-4 bg-[#121526] border border-white/5 rounded-3xl p-3 space-y-1 shadow-xl">
+                    <div className="lg:col-span-4 bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 shadow-sm rounded-3xl p-3 space-y-1 shadow-xl">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-3 py-2">
                             Sections de la page
                         </p>
@@ -231,7 +231,7 @@ const AboutAdmin = () => {
                                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-left transition-all ${
                                     activeTab === id
                                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                        : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <Icon size={16} />
@@ -241,7 +241,7 @@ const AboutAdmin = () => {
                     </div>
 
                     {/* Zone de formulaire pour la section active */}
-                    <div className="lg:col-span-8 bg-[#121526] border border-white/5 rounded-3xl p-6 sm:p-8 shadow-xl min-h-[450px]">
+                    <div className="lg:col-span-8 bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 shadow-sm rounded-3xl p-6 sm:p-8 shadow-xl min-h-[450px]">
                         {loading ? (
                             <div className="py-20 flex flex-col items-center justify-center">
                                 <Loader2 size={32} className="animate-spin text-indigo-500 mb-3" />
@@ -253,7 +253,7 @@ const AboutAdmin = () => {
                                 {/* 1. PRÉSENTATION GÉNÉRALE */}
                                 {activeTab === 'general' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             1. Présentation générale & Accroche
                                         </h3>
                                         <div>
@@ -262,7 +262,7 @@ const AboutAdmin = () => {
                                                 type="text"
                                                 value={content.companyName || ''}
                                                 onChange={e => setContent(p => ({ ...p, companyName: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -271,7 +271,7 @@ const AboutAdmin = () => {
                                                 type="text"
                                                 value={content.mainTitle || ''}
                                                 onChange={e => setContent(p => ({ ...p, mainTitle: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -280,7 +280,7 @@ const AboutAdmin = () => {
                                                 rows={2}
                                                 value={content.subtitle || ''}
                                                 onChange={e => setContent(p => ({ ...p, subtitle: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -289,7 +289,7 @@ const AboutAdmin = () => {
                                                 rows={4}
                                                 value={content.generalDescription || ''}
                                                 onChange={e => setContent(p => ({ ...p, generalDescription: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -300,7 +300,7 @@ const AboutAdmin = () => {
                                                     value={content.mainImageUrl || ''}
                                                     onChange={e => setContent(p => ({ ...p, mainImageUrl: e.target.value }))}
                                                     placeholder="https://..."
-                                                    className="flex-1 bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                                                    className="flex-1 bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white"
                                                 />
                                                 <input
                                                     type="file"
@@ -313,7 +313,7 @@ const AboutAdmin = () => {
                                                     type="button"
                                                     onClick={() => mainImageInputRef.current?.click()}
                                                     disabled={uploading}
-                                                    className="px-4 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-bold transition-all"
+                                                    className="px-4 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-slate-900 dark:text-white text-xs font-bold transition-all"
                                                 >
                                                     {uploading ? <Loader2 size={14} className="animate-spin" /> : 'Parcourir'}
                                                 </button>
@@ -330,7 +330,7 @@ const AboutAdmin = () => {
                                 {/* 2. NOTRE HISTOIRE */}
                                 {activeTab === 'history' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             2. Notre Histoire & Genèse
                                         </h3>
                                         <div className="grid sm:grid-cols-3 gap-4">
@@ -340,7 +340,7 @@ const AboutAdmin = () => {
                                                     type="text"
                                                     value={content.historyTitle || ''}
                                                     onChange={e => setContent(p => ({ ...p, historyTitle: e.target.value }))}
-                                                    className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white"
+                                                    className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
                                                 />
                                             </div>
                                             <div>
@@ -349,7 +349,7 @@ const AboutAdmin = () => {
                                                     type="text"
                                                     value={content.historyYear || ''}
                                                     onChange={e => setContent(p => ({ ...p, historyYear: e.target.value }))}
-                                                    className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white"
+                                                    className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
                                                 />
                                             </div>
                                         </div>
@@ -359,7 +359,7 @@ const AboutAdmin = () => {
                                                 rows={6}
                                                 value={content.historyText || ''}
                                                 onChange={e => setContent(p => ({ ...p, historyText: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
@@ -368,7 +368,7 @@ const AboutAdmin = () => {
                                 {/* 3. MISSION & VISION */}
                                 {activeTab === 'mission' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             3. Mission & Vision
                                         </h3>
                                         <div>
@@ -387,7 +387,7 @@ const AboutAdmin = () => {
                                                 rows={3}
                                                 value={content.missionText || ''}
                                                 onChange={e => setContent(p => ({ ...p, missionText: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -406,7 +406,7 @@ const AboutAdmin = () => {
                                                 rows={3}
                                                 value={content.visionText || ''}
                                                 onChange={e => setContent(p => ({ ...p, visionText: e.target.value }))}
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
@@ -416,7 +416,7 @@ const AboutAdmin = () => {
                                 {activeTab === 'values' && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                            <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
                                                 4. Nos Valeurs Fondamentales ({valuesList.length})
                                             </h3>
                                             <button
@@ -441,7 +441,7 @@ const AboutAdmin = () => {
                                                                 setValuesList(copy);
                                                             }}
                                                             placeholder="Titre de la valeur"
-                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-white focus:outline-none focus:border-indigo-500"
+                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-slate-900 dark:text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                                                         />
                                                         <button onClick={() => removeValue(idx)} className="text-red-400 hover:text-red-300 p-1">
                                                             <Trash2 size={14} />
@@ -467,7 +467,7 @@ const AboutAdmin = () => {
                                 {/* 5. CHIFFRES CLÉS */}
                                 {activeTab === 'stats' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             5. Chiffres Clés Dynamiques
                                         </h3>
                                         <p className="text-xs text-gray-400">
@@ -486,7 +486,7 @@ const AboutAdmin = () => {
                                 {activeTab === 'team' && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                            <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
                                                 6. Membres de l'Équipe ({teamList.length})
                                             </h3>
                                             <button
@@ -511,7 +511,7 @@ const AboutAdmin = () => {
                                                                 setTeamList(copy);
                                                             }}
                                                             placeholder="Nom et prénom"
-                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-white focus:outline-none"
+                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-slate-900 dark:text-slate-900 dark:text-white focus:outline-none"
                                                         />
                                                         <input
                                                             type="text"
@@ -549,7 +549,7 @@ const AboutAdmin = () => {
                                 {activeTab === 'commitments' && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                            <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
                                                 7. Engagements & Avantages ({commitmentsList.length})
                                             </h3>
                                             <button
@@ -574,7 +574,7 @@ const AboutAdmin = () => {
                                                                 setCommitmentsList(copy);
                                                             }}
                                                             placeholder="Titre de l'engagement"
-                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-white focus:outline-none"
+                                                            className="flex-1 bg-transparent border-b border-white/10 pb-1 text-xs font-bold text-slate-900 dark:text-slate-900 dark:text-white focus:outline-none"
                                                         />
                                                         <button onClick={() => removeCommitment(idx)} className="text-red-400 hover:text-red-300 p-1">
                                                             <Trash2 size={14} />
@@ -601,7 +601,7 @@ const AboutAdmin = () => {
                                 {activeTab === 'gallery' && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                            <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
                                                 8. Galerie & Médias ({galleryList.length})
                                             </h3>
                                             <button
@@ -619,7 +619,7 @@ const AboutAdmin = () => {
                                                     <img src={img.imageUrl} alt={img.caption} className="w-full h-full object-cover" />
                                                     <button
                                                         onClick={() => removeGalleryItem(idx)}
-                                                        className="absolute top-2 right-2 p-1 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        className="absolute top-2 right-2 p-1 rounded-full bg-red-600 text-slate-900 dark:text-white opacity-0 group-hover:opacity-100 transition-opacity"
                                                     >
                                                         <Trash2 size={12} />
                                                     </button>
@@ -632,17 +632,17 @@ const AboutAdmin = () => {
                                 {/* 9. RÉSEAUX & CONTACT */}
                                 {activeTab === 'contact' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             9. Coordonnées & Réseaux Sociaux
                                         </h3>
                                         <p className="text-xs text-gray-400">
                                             Les coordonnées principales proviennent de vos paramètres généraux de boutique. Vous pouvez également configurer des liens dédiés ci-dessous.
                                         </p>
                                         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 text-xs text-gray-300">
-                                            <p><strong className="text-white">Email de contact :</strong> contact@peoc.cm</p>
-                                            <p><strong className="text-white">Téléphone :</strong> +237 686 669 222</p>
-                                            <p><strong className="text-white">WhatsApp :</strong> +237 686 669 222</p>
-                                            <p><strong className="text-white">Localisation :</strong> Ouest Cameroun</p>
+                                            <p><strong className="text-slate-900 dark:text-white">Email de contact :</strong> contact@peoc.cm</p>
+                                            <p><strong className="text-slate-900 dark:text-white">Téléphone :</strong> +237 686 669 222</p>
+                                            <p><strong className="text-slate-900 dark:text-white">WhatsApp :</strong> +237 686 669 222</p>
+                                            <p><strong className="text-slate-900 dark:text-white">Localisation :</strong> Ouest Cameroun</p>
                                         </div>
                                     </div>
                                 )}
@@ -650,7 +650,7 @@ const AboutAdmin = () => {
                                 {/* 10. RÉFÉRENCEMENT SEO */}
                                 {activeTab === 'seo' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-black uppercase tracking-wider text-white border-b border-white/5 pb-2">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white border-b border-white/5 pb-2">
                                             10. Référencement & Métadonnées SEO
                                         </h3>
                                         <div>
@@ -658,7 +658,7 @@ const AboutAdmin = () => {
                                             <input
                                                 type="text"
                                                 defaultValue="À Propos de DAKORA BUSINESS • Leader Matériel Élevage Cameroun"
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
@@ -666,7 +666,7 @@ const AboutAdmin = () => {
                                             <textarea
                                                 rows={3}
                                                 defaultValue="Découvrez l'histoire, la mission et les équipements modernes de DAKORA BUSINESS au Cameroun. Couveuses, abreuvoirs et solutions d'élevage certifiées."
-                                                className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white"
+                                                className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>

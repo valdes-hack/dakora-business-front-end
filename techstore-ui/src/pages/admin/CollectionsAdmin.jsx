@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus, Pencil, Trash2, X, Search, Package, PackagePlus, PackageMinus,
@@ -466,62 +466,56 @@ const CollectionsAdminContent = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4 items-center">
                 
                 {/* Total Collections */}
-                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
                     <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
                         <Layers size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-gray-400 truncate">Total Collections</p>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-gray-400 truncate">Total Collections</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-lg sm:text-xl font-black text-white">{stats.total}</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
-                                ↑ +1
-                            </span>
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{stats.total}</span>
+                            
                         </div>
                     </div>
                 </div>
 
                 {/* Collections Actives */}
-                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
                     <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                         <Package size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-gray-400 truncate">Collections Actives</p>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-gray-400 truncate">Collections Actives</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-lg sm:text-xl font-black text-white">{stats.active}</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
-                                ↑ +0
-                            </span>
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{stats.active}</span>
+                            
                         </div>
                     </div>
                 </div>
 
                 {/* Collections Publiées */}
-                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
                     <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
                         <Eye size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-gray-400 truncate">Collections Publiées</p>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-gray-400 truncate">Collections Publiées</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-lg sm:text-xl font-black text-white">{stats.published}</span>
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
-                                ↑ +0
-                            </span>
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{stats.published}</span>
+                            
                         </div>
                     </div>
                 </div>
 
                 {/* Taux d'engagement / Produits */}
-                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
                     <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
                         <Sparkles size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-gray-400 truncate">Taux d'engagement</p>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-gray-400 truncate">Taux d'engagement</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-lg sm:text-xl font-black text-white">{stats.engagementRate}%</span>
+                            <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{stats.engagementRate}%</span>
                             <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden shrink-0">
                                 <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.engagementRate}%` }}></div>
                             </div>
@@ -543,7 +537,7 @@ const CollectionsAdminContent = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 3. BARRE D'ACTIONS ET DE GESTION MULTIPLE (MAQUETTE 2)             */}
             {/* ═════════════════════════════════════════════════════════════════ */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#0d101c] p-2 sm:p-2.5 rounded-2xl border border-white/5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white dark:bg-slate-50 dark:bg-[#0d101c] p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
                 
                 {/* Gauche : Tout sélectionner + Actions groupées + Exporter + Importer */}
                 <div className="flex items-center gap-2 flex-wrap">
@@ -579,7 +573,7 @@ const CollectionsAdminContent = () => {
                         </button>
 
                         {showBatchDropdown && (
-                            <div className="absolute left-0 top-full mt-2 w-52 bg-[#161a2e] border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 space-y-1">
+                            <div className="absolute left-0 top-full mt-2 w-52 bg-white dark:bg-[#161a2e] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 space-y-1">
                                 <button
                                     onClick={() => handleBatchAction('activate')}
                                     className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 text-left transition-colors"
@@ -624,7 +618,7 @@ const CollectionsAdminContent = () => {
                     {/* Bouton Exporter */}
                     <button
                         onClick={() => handleExport()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#15192c] hover:bg-white/5 border border-white/5 text-gray-300 hover:text-white transition-all"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-[#15192c] hover:bg-slate-200 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-all"
                     >
                         <Download size={14} /> <span>Exporter</span>
                     </button>
@@ -647,7 +641,7 @@ const CollectionsAdminContent = () => {
                             value={searchCollection}
                             onChange={(e) => setSearchCollection(e.target.value)}
                             placeholder="Rechercher une collection..."
-                            className="w-full bg-[#15192c] border border-white/5 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                            className="w-full bg-slate-100 dark:bg-[#15192c] border border-slate-200 dark:border-white/5 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
                         />
                         {searchCollection && (
                             <button onClick={() => setSearchCollection('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
@@ -671,7 +665,7 @@ const CollectionsAdminContent = () => {
                         </button>
 
                         {showFilterDropdown && (
-                            <div className="absolute right-0 top-full mt-2 w-64 bg-[#161a2e] border border-white/10 rounded-2xl shadow-2xl p-3 z-50 space-y-3">
+                            <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#161a2e] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-3 z-50 space-y-3">
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Statut</p>
                                     <div className="flex flex-wrap gap-1.5">
@@ -680,7 +674,7 @@ const CollectionsAdminContent = () => {
                                                 key={st}
                                                 onClick={() => { setStatusFilter(st); setShowFilterDropdown(false); }}
                                                 className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                                                    statusFilter === st ? 'bg-blue-600 text-white' : 'bg-[#111421] text-gray-400 hover:text-white'
+                                                    statusFilter === st ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-[#111421] text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
                                                 }`}
                                             >
                                                 {st === 'ALL' ? 'Toutes' : st === 'ACTIVE' ? 'Actives' : 'Inactives'}
@@ -722,15 +716,15 @@ const CollectionsAdminContent = () => {
             {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(8)].map((_, i) => (
-                        <div key={i} className="h-48 bg-[#121526] border border-white/5 rounded-2xl animate-pulse" />
+                        <div key={i} className="h-48 bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-2xl animate-pulse" />
                     ))}
                 </div>
             ) : paginatedCollections.length === 0 ? (
-                <div className="text-center py-16 bg-[#121526] border border-white/5 rounded-3xl p-8">
+                <div className="text-center py-16 bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-3xl p-8">
                     <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-3xl mb-4">
                         🗂️
                     </div>
-                    <h3 className="text-lg font-black text-white mb-2">Aucune collection disponible</h3>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Aucune collection disponible</h3>
                     <p className="text-gray-400 text-xs sm:text-sm max-w-md mx-auto mb-6">
                         {searchCollection || statusFilter !== 'ALL' || typeFilter !== 'ALL'
                             ? "Aucune collection ne correspond à vos filtres actuels. Modifiez vos critères."
@@ -752,10 +746,10 @@ const CollectionsAdminContent = () => {
                         return (
                             <div
                                 key={col.id}
-                                className={`group bg-[#121526] border rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between relative shadow-lg ${
+                                className={`group bg-white dark:bg-[#121526] border rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between relative shadow-lg ${
                                     isSelected
-                                        ? 'border-blue-500 shadow-blue-500/20 bg-[#141830]'
-                                        : 'border-white/5 hover:border-blue-500/40 hover:bg-[#14182e]'
+                                        ? 'border-blue-500 shadow-blue-500/20 bg-blue-50/50 dark:bg-[#141830]'
+                                        : 'border-slate-200 dark:border-white/5 hover:border-blue-500/40 hover:bg-slate-50/70 dark:hover:bg-[#14182e]'
                                 }`}
                             >
                                 {/* Haut de carte : Checkbox & Statut */}
@@ -787,7 +781,7 @@ const CollectionsAdminContent = () => {
                                 {/* Milieu de carte : Visuel & Infos */}
                                 <div className="flex items-start gap-3.5 mb-3">
                                     {/* Image / Icône */}
-                                    <div className="w-14 h-14 rounded-xl bg-[#0a0d17] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center text-2xl shadow-inner">
+                                    <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center text-2xl shadow-inner">
                                         {col.bannerUrl ? (
                                             <img src={col.bannerUrl} alt={col.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         ) : col.iconUrl && col.iconUrl.startsWith('http') ? (
@@ -799,7 +793,7 @@ const CollectionsAdminContent = () => {
 
                                     {/* Titre & Description */}
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="text-sm font-black text-white truncate leading-tight group-hover:text-blue-400 transition-colors">
+                                        <h3 className="text-sm font-black text-slate-900 dark:text-white truncate leading-tight group-hover:text-blue-400 transition-colors">
                                             {col.name}
                                         </h3>
                                         <p className="text-[11px] text-gray-400 line-clamp-2 mt-1 leading-relaxed">
@@ -816,16 +810,21 @@ const CollectionsAdminContent = () => {
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
-                                        <Eye size={13} className="text-purple-400" />
-                                        {((col.sortOrder || 1) * 1.8 + (col.productCount || 0) * 0.4).toFixed(1)}K vues
+                                        {col.isPublished !== false ? (
+                                            <><Eye size={13} className="text-emerald-500" /> Publiée</>
+                                        ) : (
+                                            <><EyeOff size={13} className="text-amber-500" /> Brouillon</>
+                                        )}
                                     </span>
+                                    <span>•</span>
+                                    <span>Ordre #{col.sortOrder ?? 0}</span>
                                 </div>
 
                                 {/* Bas de carte : Bouton Voir détails & Icônes d'actions */}
-                                <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
+                                <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-white/5">
                                     <button
                                         onClick={() => openManageProducts(col)}
-                                        className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-bold transition-all active:scale-95"
+                                        className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-600/20 hover:bg-blue-600 text-blue-600 dark:text-blue-300 hover:text-white text-xs font-bold transition-all active:scale-95"
                                     >
                                         Voir détails &gt;
                                     </button>
@@ -863,7 +862,7 @@ const CollectionsAdminContent = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 5. PIED DE PAGE & PAGINATION (MAQUETTE 2)                         */}
             {/* ═════════════════════════════════════════════════════════════════ */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5 text-xs text-gray-400 font-medium">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-white/5 text-xs text-gray-400 font-medium">
                 <div>
                     Affichage de {paginatedCollections.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} à {Math.min(currentPage * pageSize, filteredCollections.length)} sur {filteredCollections.length} collections
                 </div>
@@ -874,14 +873,14 @@ const CollectionsAdminContent = () => {
                         <button
                             onClick={() => setCurrentPage(1)}
                             disabled={currentPage === 1}
-                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-1 rounded-lg bg-white dark:bg-[#121526] hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             &laquo;
                         </button>
                         <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-1 rounded-lg bg-white dark:bg-[#121526] hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             &lsaquo;
                         </button>
@@ -895,7 +894,7 @@ const CollectionsAdminContent = () => {
                                     className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
                                         currentPage === pageNum
                                             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                                            : 'bg-[#121526] text-gray-400 hover:text-white border border-white/5'
+                                            : 'bg-white dark:bg-[#121526] text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/5'
                                     }`}
                                 >
                                     {pageNum}
@@ -906,14 +905,14 @@ const CollectionsAdminContent = () => {
                         <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-1 rounded-lg bg-white dark:bg-[#121526] hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             &rsaquo;
                         </button>
                         <button
                             onClick={() => setCurrentPage(totalPages)}
                             disabled={currentPage === totalPages}
-                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-1 rounded-lg bg-white dark:bg-[#121526] hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             &raquo;
                         </button>
@@ -925,7 +924,7 @@ const CollectionsAdminContent = () => {
                         <select
                             value={pageSize}
                             onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                            className="bg-[#121526] border border-white/5 rounded-lg px-2.5 py-1 text-white font-bold text-xs focus:outline-none"
+                            className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/5 rounded-lg px-2.5 py-1 text-slate-900 dark:text-white font-bold text-xs focus:outline-none"
                         >
                             <option value={8}>8</option>
                             <option value={12}>12</option>
@@ -941,11 +940,11 @@ const CollectionsAdminContent = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {showFormModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+                    <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
                         
-                        <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/5">
                             <div>
-                                <h2 className="text-xl font-black text-white">
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white">
                                     {editing ? 'Modifier la Collection' : 'Créer une Collection'}
                                 </h2>
                                 <p className="text-xs text-gray-400 mt-0.5">
@@ -970,7 +969,7 @@ const CollectionsAdminContent = () => {
                                         value={form.name}
                                         onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                                         placeholder="ex: Couveuses Automatiques"
-                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                     />
                                 </div>
                                 <div>
@@ -982,7 +981,7 @@ const CollectionsAdminContent = () => {
                                         value={form.slug}
                                         onChange={(e) => setForm(prev => ({ ...prev, slug: e.target.value }))}
                                         placeholder="ex: couveuses-automatiques"
-                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                     />
                                 </div>
                             </div>
@@ -997,7 +996,7 @@ const CollectionsAdminContent = () => {
                                     value={form.description}
                                     onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Décrivez les produits réunis dans ce rayon..."
-                                    className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                 />
                             </div>
 
@@ -1010,7 +1009,7 @@ const CollectionsAdminContent = () => {
                                     <select
                                         value={form.collectionType}
                                         onChange={(e) => setForm(prev => ({ ...prev, collectionType: e.target.value }))}
-                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                     >
                                         <option value="TYPE">Type de produit (Rayon classique)</option>
                                         <option value="USAGE">Usage / Mode d'élevage</option>
@@ -1025,7 +1024,7 @@ const CollectionsAdminContent = () => {
                                         type="number"
                                         value={form.sortOrder}
                                         onChange={(e) => setForm(prev => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
-                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                     />
                                 </div>
                             </div>
@@ -1040,7 +1039,7 @@ const CollectionsAdminContent = () => {
                                         type="text"
                                         value={form.iconUrl}
                                         onChange={(e) => setForm(prev => ({ ...prev, iconUrl: e.target.value }))}
-                                        className="w-20 bg-[#0a0d17] border border-white/10 rounded-xl px-3 py-2 text-center text-lg text-white"
+                                        className="w-20 bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-center text-lg text-white"
                                     />
                                     <div className="flex flex-wrap gap-1.5">
                                         {SUGGESTED_EMOJIS.map(em => (
@@ -1068,7 +1067,7 @@ const CollectionsAdminContent = () => {
                                         value={form.bannerUrl}
                                         onChange={(e) => setForm(prev => ({ ...prev, bannerUrl: e.target.value }))}
                                         placeholder="https://... ou téléversez depuis votre PC"
-                                        className="flex-1 bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        className="flex-1 bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                                     />
                                     <input
                                         type="file"
@@ -1081,7 +1080,7 @@ const CollectionsAdminContent = () => {
                                         type="button"
                                         onClick={() => bannerFileInputRef.current?.click()}
                                         disabled={uploadingBanner}
-                                        className="px-4 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
+                                        className="px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-600/20 hover:bg-blue-600 text-blue-600 dark:text-blue-300 hover:text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
                                     >
                                         {uploadingBanner ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                                         <span>Parcourir</span>
@@ -1103,7 +1102,7 @@ const CollectionsAdminContent = () => {
                                         onChange={(e) => setForm(prev => ({ ...prev, isActive: e.target.checked }))}
                                         className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0a0d17] border-white/20"
                                     />
-                                    <span className="text-xs font-bold text-white">Collection Active</span>
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white">Collection Active</span>
                                 </label>
 
                                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1113,12 +1112,12 @@ const CollectionsAdminContent = () => {
                                         onChange={(e) => setForm(prev => ({ ...prev, isPublished: e.target.checked }))}
                                         className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0a0d17] border-white/20"
                                     />
-                                    <span className="text-xs font-bold text-white">Publiée dans la boutique</span>
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white">Publiée dans la boutique</span>
                                 </label>
                             </div>
 
                             {/* Boutons d'action */}
-                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/5">
                                 <button
                                     type="button"
                                     onClick={() => setShowFormModal(false)}
@@ -1145,10 +1144,10 @@ const CollectionsAdminContent = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {manageModalOpen && activeCollection && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
                         
                         {/* Header Modal */}
-                        <div className="p-4 sm:p-5 border-b border-white/5 flex items-center justify-between shrink-0 bg-[#0d101c]">
+                        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-[#0d101c]">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl shrink-0">
                                     {activeCollection.iconUrl && activeCollection.iconUrl.startsWith('http') ? (
@@ -1158,7 +1157,7 @@ const CollectionsAdminContent = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                                         Produits de la collection : {activeCollection.name}
                                     </h2>
                                     <p className="text-xs text-gray-400">
@@ -1187,7 +1186,7 @@ const CollectionsAdminContent = () => {
                                 ) : linkedProducts.length === 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-white/5 rounded-2xl">
                                         <PackageMinus size={32} className="text-gray-600 mb-2" />
-                                        <p className="text-xs font-bold text-white">Aucun produit dans ce rayon</p>
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white">Aucun produit dans ce rayon</p>
                                         <p className="text-[11px] text-gray-500 mt-1">Ajoutez des produits depuis le catalogue à droite.</p>
                                     </div>
                                 ) : (
@@ -1206,7 +1205,7 @@ const CollectionsAdminContent = () => {
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate">{prod.name}</p>
+                                                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{prod.name}</p>
                                                         <p className="text-[10px] text-blue-400 font-bold mt-0.5">
                                                             {new Intl.NumberFormat('fr-FR').format(prod.discountPrice > 0 ? prod.discountPrice : prod.basePrice || 0)} FCFA
                                                         </p>
@@ -1226,7 +1225,7 @@ const CollectionsAdminContent = () => {
                             </div>
 
                             {/* Colonne droite : Ajouter depuis le catalogue */}
-                            <div className="p-4 flex flex-col overflow-hidden h-full bg-[#0e1122]">
+                            <div className="p-4 flex flex-col overflow-hidden h-full bg-slate-50 dark:bg-[#0e1122]">
                                 <div className="mb-3">
                                     <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-2">
                                         Ajouter depuis le catalogue ({availableCatalogProducts.length})
@@ -1238,7 +1237,7 @@ const CollectionsAdminContent = () => {
                                             value={catalogSearch}
                                             onChange={(e) => setCatalogSearch(e.target.value)}
                                             placeholder="Rechercher par nom, référence..."
-                                            className="w-full bg-[#0a0d17] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                                            className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-gray-500 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -1267,7 +1266,7 @@ const CollectionsAdminContent = () => {
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate">{prod.name}</p>
+                                                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{prod.name}</p>
                                                         <p className="text-[10px] text-gray-400 mt-0.5">
                                                             {new Intl.NumberFormat('fr-FR').format(prod.discountPrice > 0 ? prod.discountPrice : prod.basePrice || 0)} FCFA
                                                         </p>
@@ -1287,7 +1286,7 @@ const CollectionsAdminContent = () => {
                         </div>
 
                         {/* Footer Modal */}
-                        <div className="p-4 border-t border-white/5 bg-[#0d101c] flex items-center justify-between shrink-0">
+                        <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0d101c] flex items-center justify-between shrink-0">
                             <span className="text-xs text-gray-400">Modifications synchronisées en temps réel avec la boutique.</span>
                             <button
                                 onClick={() => setManageModalOpen(false)}
@@ -1305,9 +1304,9 @@ const CollectionsAdminContent = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {showImportModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
-                        <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                            <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <div className="bg-white dark:bg-[#121526] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/5">
+                            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                                 <Upload size={18} className="text-emerald-400" /> Importer des Collections
                             </h3>
                             <button onClick={() => setShowImportModal(false)} className="p-1 text-gray-400 hover:text-white">
@@ -1324,7 +1323,7 @@ const CollectionsAdminContent = () => {
                             value={importJsonText}
                             onChange={(e) => setImportJsonText(e.target.value)}
                             placeholder='[{"name": "Accessoires Pro", "iconUrl": "⚙️", "collectionType": "TYPE"}]'
-                            className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-slate-50 dark:bg-[#0a0d17] border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
                         />
 
                         <div className="flex justify-end gap-2 pt-2">
@@ -1364,7 +1363,7 @@ const CollectionsAdminContent = () => {
 
 const CollectionsAdmin = () => (
     <AdminLayout>
-        <div className="bg-[#0b0e14] text-gray-300 rounded-[2.5rem] min-h-full">
+        <div className="text-slate-800 dark:text-gray-300 rounded-[2.5rem] min-h-full">
             <CollectionsAdminContent />
         </div>
     </AdminLayout>
