@@ -92,6 +92,16 @@ const CATEGORIES = [
         ],
     },
     {
+        id: 'collections', icon: LayoutGrid, label: 'Paramètres Collections',
+        desc: "Contrôlez l'affichage et la bannière des collections", color: '#3b82f6',
+        subsections: [
+            { id: 'collections.display', label: 'Affichage & Mode grille' },
+            { id: 'collections.banner',  label: 'Bannière des collections' },
+            { id: 'collections.cards',   label: 'Cartes & Éléments visibles' },
+            { id: 'collections.filters', label: 'Filtres & Tri par défaut' },
+        ],
+    },
+    {
         id: 'advanced', icon: Sliders, label: 'Avancées',
         desc: 'Options avancées', color: '#6b7280',
         subsections: [
@@ -777,7 +787,180 @@ const FormAdvancedSecurity = ({ formData, setFormData }) => (
 // ═══════════════════════════════════════════
 // ROUTEUR DE FORMULAIRE
 // ═══════════════════════════════════════════
+
+// ── COLLECTIONS & RAYONS ───────────────────
+const FormCollectionsDisplay = ({ formData, setFormData }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Affichage des Collections" desc="Contrôlez la disposition et le nombre d'éléments sur la vitrine." icon={LayoutGrid} color="#3b82f6" />
+        <Toggle
+            label="Activer la section Collections sur la boutique"
+            desc="Permet aux clients d'accéder à la page des collections et de parcourir les rayons."
+            value={formData.collectionsEnabled !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsEnabled: v }))}
+            color="#3b82f6"
+        />
+        <div>
+            <SLabel>Mode de présentation</SLabel>
+            <select
+                value={formData.collectionsMode || 'GRID'}
+                onChange={(e) => setFormData(p => ({ ...p, collectionsMode: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white"
+            >
+                <option value="GRID">Grille moderne (Cartes)</option>
+                <option value="BENTO">Style Bento Box</option>
+                <option value="COMPACT">Liste compacte</option>
+            </select>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+                <SLabel>Nombre de colonnes (Desktop)</SLabel>
+                <select
+                    value={formData.collectionsColumns || 4}
+                    onChange={(e) => setFormData(p => ({ ...p, collectionsColumns: parseInt(e.target.value) }))}
+                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white"
+                >
+                    <option value={2}>2 colonnes</option>
+                    <option value={3}>3 colonnes</option>
+                    <option value={4}>4 colonnes (Recommandé)</option>
+                </select>
+            </div>
+            <div>
+                <SLabel>Nombre de collections par page</SLabel>
+                <input
+                    type="number"
+                    value={formData.collectionsPerPage || 12}
+                    onChange={(e) => setFormData(p => ({ ...p, collectionsPerPage: parseInt(e.target.value) || 12 }))}
+                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white"
+                />
+            </div>
+        </div>
+    </div>
+);
+
+const FormCollectionsBanner = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const bannerRef = useRef(null);
+    const handleUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, collectionsBannerImage: r.data.data }));
+            showToast('success', 'Bannière uploadée !');
+        } catch { showToast('error', 'Erreur upload bannière'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Bannière des Collections" desc="Titre, description et image d'accroche sur la page vitrine." icon={ImageIcon} color="#3b82f6" />
+            <Toggle
+                label="Afficher la grande bannière d'accroche"
+                desc="Affiche le bandeau bleu stylisé en tête de la page /collections"
+                value={formData.collectionsBannerEnabled !== false}
+                onChange={(v) => setFormData(p => ({ ...p, collectionsBannerEnabled: v }))}
+                color="#3b82f6"
+            />
+            <div>
+                <SLabel>Titre principal</SLabel>
+                <SInput
+                    value={formData.collectionsBannerTitle || 'Découvrez nos collections exceptionnelles'}
+                    onChange={(e) => setFormData(p => ({ ...p, collectionsBannerTitle: e.target.value }))}
+                    placeholder="Découvrez nos collections exceptionnelles"
+                />
+            </div>
+            <div>
+                <SLabel>Description commerciale</SLabel>
+                <STextarea
+                    value={formData.collectionsBannerDesc || 'Une sélection soigneuse de produits pour tous vos besoins, à des prix imbattables.'}
+                    onChange={(e) => setFormData(p => ({ ...p, collectionsBannerDesc: e.target.value }))}
+                />
+            </div>
+            <div>
+                <SLabel>Image d'arrière-plan ou composition</SLabel>
+                <div className="flex gap-3">
+                    <SInput
+                        value={formData.collectionsBannerImage || ''}
+                        onChange={(e) => setFormData(p => ({ ...p, collectionsBannerImage: e.target.value }))}
+                        placeholder="https://..."
+                    />
+                    <UploadBtn label="Uploader" onUpload={handleUpload} loading={uploadingFile} inputRef={bannerRef} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FormCollectionsCards = ({ formData, setFormData }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Cartes des Collections" desc="Choisissez quels éléments afficher sur chaque carte de collection." icon={LayoutGrid} color="#3b82f6" />
+        <Toggle
+            label="Afficher les photos / images de couverture"
+            desc="Affiche l'illustration ou la photo d'arrière-plan de la collection."
+            value={formData.collectionsShowImages !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsShowImages: v }))}
+            color="#3b82f6"
+        />
+        <Toggle
+            label="Afficher la description courte"
+            desc="Affiche le texte explicatif sous le titre de chaque collection."
+            value={formData.collectionsShowDescriptions !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsShowDescriptions: v }))}
+            color="#3b82f6"
+        />
+        <Toggle
+            label="Afficher le compteur de produits"
+            desc="Indique en temps réel le nombre de produits disponibles dans le rayon."
+            value={formData.collectionsShowCount !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsShowCount: v }))}
+            color="#3b82f6"
+        />
+        <Toggle
+            label="Afficher les badges marketing (Nouveau, Top vente...)"
+            desc="Ajoute un badge coloré en haut à gauche de chaque carte."
+            value={formData.collectionsShowBadges !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsShowBadges: v }))}
+            color="#3b82f6"
+        />
+    </div>
+);
+
+const FormCollectionsFilters = ({ formData, setFormData }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Comportement & Filtres" desc="Tri par défaut et options de navigation pour les clients." icon={Sliders} color="#3b82f6" />
+        <div>
+            <SLabel>Tri par défaut sur la boutique</SLabel>
+            <select
+                value={formData.collectionsDefaultSort || 'popular'}
+                onChange={(e) => setFormData(p => ({ ...p, collectionsDefaultSort: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white"
+            >
+                <option value="popular">Plus populaires (Ordre admin)</option>
+                <option value="name">Nom alphabétique (A-Z)</option>
+                <option value="products">Nombre de produits (décroissant)</option>
+            </select>
+        </div>
+        <Toggle
+            label="Permettre l'ajout aux favoris sur les collections"
+            desc="Affiche l'icône de cœur sur les cartes pour sauvegarder les rayons préférés."
+            value={formData.collectionsAllowFavorites !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsAllowFavorites: v }))}
+            color="#3b82f6"
+        />
+        <Toggle
+            label="Afficher le carrousel des catégories en haut de page"
+            desc="Présente les raccourcis vers les différentes catégories au-dessus des collections."
+            value={formData.collectionsShowCategoriesBar !== false}
+            onChange={(v) => setFormData(p => ({ ...p, collectionsShowCategoriesBar: v }))}
+            color="#3b82f6"
+        />
+    </div>
+);
+
 const FORM_MAP = {
+    'collections.display': FormCollectionsDisplay,
+    'collections.banner':  FormCollectionsBanner,
+    'collections.cards':   FormCollectionsCards,
+    'collections.filters': FormCollectionsFilters,
     'identity.name':          FormIdentityName,
     'identity.desc':          FormIdentityDesc,
     'identity.contact':       FormIdentityContact,
@@ -896,7 +1079,8 @@ const Settings = () => {
 
     // Info système + stats dashboard
     useEffect(() => {
-        baseApi.get('/settings/info').then(r => setSysInfo(r.data?.data || r.data)).catch(() => setSysInfo(null));
+        // /settings/info n'existe pas — on retire cet appel
+        setSysInfo({ database: 'MySQL (Aiven)', server: 'Tomcat 10.1', lastUpdate: new Date().toLocaleDateString('fr-FR') });
         // Stats dynamiques depuis /admin/dashboard
         baseApi.get('/admin/dashboard')
             .then(r => { setDashStats(r.data?.data || r.data); })

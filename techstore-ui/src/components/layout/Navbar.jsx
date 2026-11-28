@@ -1,3 +1,5 @@
+import logoImg from '../../assets/logo.jpeg';
+import { Truck, ShieldCheck, Headphones, Heart } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, ChevronDown, Package, Sun, Moon, Settings, LogOut } from 'lucide-react';
@@ -91,7 +93,7 @@ const Navbar = () => {
                         {/* ── LOGO ── */}
                         <Link to="/" className="flex items-center gap-2 min-w-0 group shrink">
                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-md group-hover:scale-105 transition-transform p-0.5 shrink-0">
-                                <img src={siteLogo} alt="PEOC Logo" className="w-full h-full object-contain rounded-lg" onError={(e) => { e.target.style.display = 'none'; }} />
+                                <img src={logoImg} alt="DAKORA BUSINESS" className="w-full h-full object-contain rounded-lg" onError={(e) => { e.target.style.display = 'none'; }} />
                             </div>
                             <div className="flex flex-col min-w-0">
                                 <span className="text-sm md:text-lg font-black text-apple-dark dark:text-white uppercase tracking-tight leading-none truncate max-w-[120px] sm:max-w-[180px] md:max-w-none">

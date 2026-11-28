@@ -21,10 +21,9 @@ const PageSkeleton = () => (
     </div>
 );
 
-// ─── SKELETON ADMIN (GARANTIT QUE LA SIDEBAR NE DISPARAÎT JAMAIS LORS D'UN CHANGEMENT D'ONGLET) ─
+// ─── SKELETON ADMIN ─────────────────────────────────────────────────────────
 const AdminSkeleton = () => (
     <div className="flex h-screen overflow-hidden bg-[#0b0e14] text-gray-300">
-        {/* Sidebar squelette fixe à gauche */}
         <div style={{ width: '260px' }} className="h-full border-r border-white/5 bg-[#111421] p-6 space-y-6 hidden lg:flex flex-col shrink-0">
             <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-white/10 animate-pulse" />
@@ -40,7 +39,6 @@ const AdminSkeleton = () => (
             </div>
         </div>
 
-        {/* Zone centrale */}
         <div className="flex-1 flex flex-col min-w-0">
             <div className="h-16 border-b border-white/5 bg-[#0b0e14]/50 flex items-center justify-between px-8">
                 <div className="h-5 bg-white/10 rounded-lg w-28 animate-pulse" />
@@ -63,17 +61,18 @@ const AdminSkeleton = () => (
 );
 
 // ─── PAGES PUBLIQUES (lazy) ───────────────────────────────────────────────────
-const Home          = lazy(() => import('../pages/public/Home'));
-const Login         = lazy(() => import('../pages/auth/Login'));
-const Register      = lazy(() => import('../pages/auth/Register'));
-const Catalog       = lazy(() => import('../pages/public/Catalog'));
-const Promotions    = lazy(() => import('../pages/public/Promotions'));
-const ProductDetail = lazy(() => import('../pages/public/ProductDetail'));
-const CheckoutPage  = lazy(() => import('../pages/public/CheckoutPage'));
-const TrackOrder    = lazy(() => import('../pages/public/TrackOrder'));
-const Collections   = lazy(() => import('../pages/public/Collections'));
+const Home             = lazy(() => import('../pages/public/Home'));
+const Login            = lazy(() => import('../pages/auth/Login'));
+const Register         = lazy(() => import('../pages/auth/Register'));
+const Catalog          = lazy(() => import('../pages/public/Catalog'));
+const Promotions       = lazy(() => import('../pages/public/Promotions'));
+const ProductDetail    = lazy(() => import('../pages/public/ProductDetail'));
+const CheckoutPage     = lazy(() => import('../pages/public/CheckoutPage'));
+const TrackOrder       = lazy(() => import('../pages/public/TrackOrder'));
+const Collections      = lazy(() => import('../pages/public/Collections'));
 const CollectionDetail = lazy(() => import('../pages/public/CollectionDetail'));
-const InfoPage = lazy(() => import('../pages/public/InfoPage'));
+const About            = lazy(() => import('../pages/public/About'));
+const InfoPage         = lazy(() => import('../pages/public/InfoPage'));
 
 // ─── PAGES CLIENT (lazy) ─────────────────────────────────────────────────────
 const Profile     = lazy(() => import('../pages/client/Profile'));
@@ -81,18 +80,19 @@ const MyOrders    = lazy(() => import('../pages/client/MyOrders'));
 const OrderDetail = lazy(() => import('../pages/client/OrderDetail'));
 
 // ─── PAGES ADMIN (lazy) ──────────────────────────────────────────────────────
-const Dashboard      = lazy(() => import('../pages/admin/Dashboard'));
-const AdminProducts  = lazy(() => import('../pages/admin/Products'));
+const Dashboard        = lazy(() => import('../pages/admin/Dashboard'));
+const AdminProducts    = lazy(() => import('../pages/admin/Products'));
 const CollectionsAdmin = lazy(() => import('../pages/admin/CollectionsAdmin'));
-const AdminPromotions= lazy(() => import('../pages/admin/Promotions'));
-const AdminCategories= lazy(() => import('../pages/admin/Categories'));
-const AdminSuppliers = lazy(() => import('../pages/admin/Suppliers'));
-const StockSupply    = lazy(() => import('../pages/admin/StockSupply'));
-const AdminUsers     = lazy(() => import('../pages/admin/Users'));
-const AdminOrders    = lazy(() => import('../pages/admin/Orders'));
-const AdminSettings  = lazy(() => import('../pages/admin/Settings'));
-const HistoryPage    = lazy(() => import('../pages/admin/HistoryPage'));
-const StatsPage      = lazy(() => import('../pages/admin/StatsPage'));
+const AdminPromotions  = lazy(() => import('../pages/admin/Promotions'));
+const AdminCategories  = lazy(() => import('../pages/admin/Categories'));
+const AdminSuppliers   = lazy(() => import('../pages/admin/Suppliers'));
+const StockSupply      = lazy(() => import('../pages/admin/StockSupply'));
+const AdminUsers       = lazy(() => import('../pages/admin/Users'));
+const AdminOrders      = lazy(() => import('../pages/admin/Orders'));
+const AdminSettings    = lazy(() => import('../pages/admin/Settings'));
+const AboutAdmin       = lazy(() => import('../pages/admin/AboutAdmin'));
+const HistoryPage      = lazy(() => import('../pages/admin/HistoryPage'));
+const StatsPage        = lazy(() => import('../pages/admin/StatsPage'));
 
 const AppRouter = () => {
     return (
@@ -107,6 +107,8 @@ const AppRouter = () => {
             <Route path="/collections" element={<Suspense fallback={<PageSkeleton />}><Collections /></Suspense>} />
             <Route path="/collections/:slug" element={<Suspense fallback={<PageSkeleton />}><CollectionDetail /></Suspense>} />
             <Route path="/product/:slug" element={<Suspense fallback={<PageSkeleton />}><ProductDetail /></Suspense>} />
+            <Route path="/a-propos" element={<Suspense fallback={<PageSkeleton />}><About /></Suspense>} />
+            <Route path="/about" element={<Navigate to="/a-propos" replace />} />
             <Route path="/checkout" element={<Suspense fallback={<PageSkeleton />}><CheckoutPage /></Suspense>} />
             <Route path="/track" element={<Suspense fallback={<PageSkeleton />}><TrackOrder /></Suspense>} />
 
@@ -128,6 +130,7 @@ const AppRouter = () => {
             <Route path="/admin/users" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><AdminUsers /></Suspense></AdminRoute>} />
             <Route path="/admin/orders" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><AdminOrders /></Suspense></AdminRoute>} />
             <Route path="/admin/settings" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><AdminSettings /></Suspense></AdminRoute>} />
+            <Route path="/admin/about" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><AboutAdmin /></Suspense></AdminRoute>} />
             <Route path="/admin/history" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><HistoryPage /></Suspense></AdminRoute>} />
             <Route path="/admin/stats" element={<AdminRoute><Suspense fallback={<AdminSkeleton />}><StatsPage /></Suspense></AdminRoute>} />
 

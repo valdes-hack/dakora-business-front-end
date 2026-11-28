@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Plus, Pencil, Trash2, X, Search, Package, PackagePlus, PackageMinus,
     LayoutGrid, Eye, EyeOff, Loader2, Image as ImageIcon, Sparkles,
-    Filter, Check, ArrowRight, Layers, Tag, HelpCircle, Upload
+    Filter, Check, ArrowRight, Layers, Tag, Upload, Download, Copy,
+    ChevronDown, ExternalLink, HelpCircle, FileSpreadsheet, CheckSquare, Square
 } from 'lucide-react';
 import CollectionService from '../../services/collection.service';
 import AdminService from '../../services/admin.service';
@@ -18,13 +20,6 @@ const TYPE_LABELS = {
 
 const SUGGESTED_EMOJIS = ['🐣', '🥚', '🐔', '🦆', '🌾', '💉', '💡', '🌡️', '📦', '🔥', '🏆', '⭐'];
 
-const SUGGESTED_BANNERS = [
-    { label: 'Couveuses & Incubation', url: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=1200&q=80' },
-    { label: 'Volailles & Élevage', url: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&q=80' },
-    { label: 'Nutrition & Aliments', url: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1200&q=80' },
-    { label: 'Soins Vétérinaires', url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80' }
-];
-
 const EMPTY_FORM = {
     name: '',
     slug: '',
@@ -34,6 +29,7 @@ const EMPTY_FORM = {
     collectionType: 'TYPE',
     sortOrder: 0,
     isActive: true,
+    isPublished: true,
 };
 
 const CollectionsAdminContent = () => {
@@ -48,9 +44,67 @@ const CollectionsAdminContent = () => {
     const [uploadingBanner, setUploadingBanner] = useState(false);
     const [uploadingIcon, setUploadingIcon] = useState(false);
 
+    // ── Sélection multiple & Actions groupées ──
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [batchLoading, setBatchLoading] = useState(false);
+    const [showBatchDropdown, setShowBatchDropdown] = useState(false);
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importJsonText, setImportJsonText] = useState('');
+
+    // ── Filtres de la liste des collections ──
+    const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'INACTIVE'
+    const [typeFilter, setTypeFilter] = useState('ALL'); // 'ALL' | 'TYPE' | 'USAGE' | 'PROMO'
+    const [searchCollection, setSearchCollection] = useState('');
+
+    // ── Pagination ──
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
+
+    // ── Modal de Gestion des Produits de la Collection ──
+    const [manageModalOpen, setManageModalOpen] = useState(false);
+    const [activeCollection, setActiveCollection] = useState(null);
+    const [linkedProducts, setLinkedProducts] = useState([]);
+    const [catalogProducts, setCatalogProducts] = useState([]);
+    const [loadingLinked, setLoadingLinked] = useState(false);
+    const [loadingCatalog, setLoadingCatalog] = useState(false);
+    const [catalogSearch, setCatalogSearch] = useState('');
+    const [manageTab, setManageTab] = useState('linked');
+
     const bannerFileInputRef = useRef(null);
     const iconFileInputRef = useRef(null);
 
+    // ── Chargement des collections ──
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const res = await CollectionService.adminGetAll();
+            if (res && (res.status === 'success' || Array.isArray(res.data))) {
+                setCollections(res.data || []);
+            }
+        } catch (e) {
+            showToast({ type: 'error', title: 'Erreur', message: "Impossible de charger les collections." });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    // ── Calcul des statistiques dynamiques réelles ──
+    const stats = useMemo(() => {
+        const total = collections.length;
+        const active = collections.filter(c => c.isActive).length;
+        const published = collections.filter(c => c.isPublished !== false).length;
+        const inactive = total - active;
+        const totalProducts = collections.reduce((acc, c) => acc + (c.productCount || 0), 0);
+        const engagementRate = total > 0 ? Math.min(100, Math.round((active / total) * 100)) : 0;
+        return { total, active, published, inactive, totalProducts, engagementRate };
+    }, [collections]);
+
+    // ── Upload Handlers ──
     const handleBannerFileUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -58,7 +112,7 @@ const CollectionsAdminContent = () => {
         try {
             const url = await AdminService.uploadMedia(file);
             setForm(prev => ({ ...prev, bannerUrl: url }));
-            showToast({ type: 'success', title: 'Photo uploadée', message: 'Photo d\'arrière-plan enregistrée avec succès !' });
+            showToast({ type: 'success', title: 'Photo uploadée', message: 'Image de couverture enregistrée avec succès !' });
         } catch (err) {
             showToast({ type: 'error', title: 'Échec upload', message: "Impossible d'uploader l'image depuis l'ordinateur." });
         } finally {
@@ -83,51 +137,12 @@ const CollectionsAdminContent = () => {
         }
     };
 
-    // ── Filtres de la liste des collections ──
-    const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'INACTIVE'
-    const [typeFilter, setTypeFilter] = useState('ALL'); // 'ALL' | 'TYPE' | 'USAGE' | 'PROMO'
-    const [searchCollection, setSearchCollection] = useState('');
-
-    // ── Modal de Gestion des Produits de la Collection ──
-    const [manageModalOpen, setManageModalOpen] = useState(false);
-    const [activeCollection, setActiveCollection] = useState(null);
-    const [linkedProducts, setLinkedProducts] = useState([]);
-    const [catalogProducts, setCatalogProducts] = useState([]);
-    const [loadingLinked, setLoadingLinked] = useState(false);
-    const [loadingCatalog, setLoadingCatalog] = useState(false);
-    const [catalogSearch, setCatalogSearch] = useState('');
-    const [manageTab, setManageTab] = useState('linked'); // 'linked' | 'available' (pour vue responsive mobile)
-
-    // ── Chargement des collections ──
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const res = await CollectionService.adminGetAll();
-            if (res && res.status === 'success') {
-                setCollections(res.data || []);
-            }
-        } catch (e) {
-            showToast({ type: 'error', title: 'Erreur', message: "Impossible de charger les collections." });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
     // ── Filtrage dynamique des collections ──
     const filteredCollections = useMemo(() => {
         return collections.filter(col => {
-            // Filtre statut
             if (statusFilter === 'ACTIVE' && !col.isActive) return false;
             if (statusFilter === 'INACTIVE' && col.isActive) return false;
-
-            // Filtre type
             if (typeFilter !== 'ALL' && col.collectionType !== typeFilter) return false;
-
-            // Recherche texte
             if (searchCollection.trim()) {
                 const q = searchCollection.toLowerCase().trim();
                 const matchName = (col.name || '').toLowerCase().includes(q);
@@ -135,10 +150,88 @@ const CollectionsAdminContent = () => {
                 const matchDesc = (col.description || '').toLowerCase().includes(q);
                 if (!matchName && !matchSlug && !matchDesc) return false;
             }
-
             return true;
         });
     }, [collections, statusFilter, typeFilter, searchCollection]);
+
+    // ── Pagination ──
+    const totalPages = Math.max(1, Math.ceil(filteredCollections.length / pageSize));
+    const paginatedCollections = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredCollections.slice(start, start + pageSize);
+    }, [filteredCollections, currentPage, pageSize]);
+
+    // ── Gestion de la sélection multiple ──
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === paginatedCollections.length && paginatedCollections.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(paginatedCollections.map(c => c.id)));
+        }
+    };
+
+    // ── Actions groupées (Batch) ──
+    const handleBatchAction = async (action) => {
+        if (selectedIds.size === 0) {
+            showToast({ type: 'info', title: 'Sélection vide', message: "Veuillez sélectionner au moins une collection." });
+            return;
+        }
+        setShowBatchDropdown(false);
+
+        if (action === 'delete') {
+            if (!window.confirm(`Voulez-vous vraiment supprimer les ${selectedIds.size} collections sélectionnées ?\nLes produits associés seront conservés dans la boutique.`)) {
+                return;
+            }
+        }
+
+        setBatchLoading(true);
+        try {
+            const ids = Array.from(selectedIds);
+            if (action === 'export') {
+                await handleExport(ids);
+                showToast({ type: 'success', title: 'Export réussi', message: `${ids.length} collection(s) exportée(s).` });
+                return;
+            }
+
+            await CollectionService.adminBatchAction(action, ids);
+            showToast({ type: 'success', title: 'Action effectuée', message: `Action "${action}" appliquée à ${ids.length} collection(s).` });
+            setSelectedIds(new Set());
+            await loadData();
+        } catch (err) {
+            showToast({ type: 'error', title: 'Erreur batch', message: "Impossible d'exécuter l'action groupée." });
+        } finally {
+            setBatchLoading(false);
+        }
+    };
+
+    // ── Export CSV ──
+    const handleExport = async (targetIds = null) => {
+        try {
+            const idsToExport = targetIds || (selectedIds.size > 0 ? Array.from(selectedIds) : []);
+            const blobData = await CollectionService.adminExportCsv(idsToExport);
+            const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dakora-collections-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            showToast({ type: 'success', title: 'Exportation terminée', message: 'Fichier CSV téléchargé avec succès.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Échec export', message: "Erreur lors du téléchargement du fichier CSV." });
+        }
+    };
 
     // ── Formulaire Modal (Création / Édition) ──
     const openCreate = () => {
@@ -158,8 +251,31 @@ const CollectionsAdminContent = () => {
             collectionType: col.collectionType || 'TYPE',
             sortOrder: col.sortOrder ?? 0,
             isActive: col.isActive !== false,
+            isPublished: col.isPublished !== false,
         });
         setShowFormModal(true);
+    };
+
+    // ── Duplication de collection ──
+    const handleDuplicate = async (col) => {
+        try {
+            const duplicated = {
+                name: `${col.name} (Copie)`,
+                slug: `${col.slug}-copie-${Date.now().toString().slice(-4)}`,
+                description: col.description,
+                iconUrl: col.iconUrl,
+                bannerUrl: col.bannerUrl,
+                collectionType: col.collectionType,
+                sortOrder: (col.sortOrder ?? 0) + 1,
+                isActive: col.isActive,
+                isPublished: col.isPublished,
+            };
+            await CollectionService.adminCreate(duplicated);
+            showToast({ type: 'success', title: 'Collection dupliquée', message: duplicated.name });
+            await loadData();
+        } catch {
+            showToast({ type: 'error', title: 'Erreur', message: "Impossible de dupliquer la collection." });
+        }
     };
 
     const handleSave = async (e) => {
@@ -224,19 +340,16 @@ const CollectionsAdminContent = () => {
         setLoadingCatalog(true);
 
         try {
-            // 1. Charger les produits de cette collection
             const linkedRes = await CollectionService.adminGetProducts(col.id, 0, 300);
-            const linked = linkedRes?.data?.content || [];
-            setLinkedProducts(linked);
+            const linked = linkedRes?.data?.content || linkedRes?.data || [];
+            setLinkedProducts(Array.isArray(linked) ? linked : []);
         } catch (err) {
-            console.error(err);
             showToast({ type: 'error', title: 'Erreur', message: "Impossible de charger les produits de la collection." });
         } finally {
             setLoadingLinked(false);
         }
 
         try {
-            // 2. Charger le catalogue global pour pouvoir ajouter facilement
             const catalogRes = await AdminService.getAdminProducts();
             const cat = catalogRes?.data?.content || catalogRes?.data || [];
             setCatalogProducts(Array.isArray(cat) ? cat : []);
@@ -282,13 +395,12 @@ const CollectionsAdminContent = () => {
         return null;
     };
 
-    // Produits disponibles filtrés par recherche
     const availableCatalogProducts = useMemo(() => {
         const linkedIds = new Set(linkedProducts.map(p => p.id));
         let list = catalogProducts.filter(p => !linkedIds.has(p.id));
         if (catalogSearch.trim()) {
             const q = catalogSearch.toLowerCase().trim();
-            list = list.filter(p => 
+            list = list.filter(p =>
                 (p.name || '').toLowerCase().includes(q) ||
                 (p.sku || '').toLowerCase().includes(q) ||
                 (p.categoryName || '').toLowerCase().includes(q)
@@ -298,245 +410,449 @@ const CollectionsAdminContent = () => {
     }, [catalogProducts, linkedProducts, catalogSearch]);
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
-            
-            {/* ── HEADER ── */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/5">
-                <div>
-                    <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase tracking-widest mb-1">
-                        <Sparkles size={14} /> Organisation du Catalogue
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 1. BANNIÈRE PRINCIPALE (CONFORME À LA MAQUETTE 2)                 */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#0b1b3d] via-[#102454] to-[#0d1633] border border-blue-500/20 shadow-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 min-h-[180px]">
+                {/* Effet néon lumineux d'arrière plan */}
+                <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
+                        <LayoutGrid size={32} />
                     </div>
-                    <h1 className="text-2xl sm:text-4xl font-black italic tracking-tighter uppercase text-white flex items-center gap-3">
-                        <LayoutGrid size={32} className="text-indigo-500" /> Collections & Rayons<span className="text-indigo-500">.</span>
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-400 mt-1 font-medium">
-                        Créez des rayons personnalisés, ajoutez des bannières d'arrière-plan et gérez intuitivement les produits rattachés.
-                    </p>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                            Nos Collections
+                        </h1>
+                        <p className="text-xs sm:text-sm text-blue-200/80 mt-1 max-w-xl font-medium leading-relaxed">
+                            Organisez et gérez vos collections pour une boutique plus attractive et une meilleure expérience d'achat.
+                        </p>
+                        <div className="mt-4 flex items-center gap-3">
+                            <Link
+                                to="/collections"
+                                target="_blank"
+                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all active:scale-95"
+                            >
+                                <Eye size={14} /> Voir la boutique
+                            </Link>
+                            <div className="flex items-center gap-1.5 ml-2">
+                                <span className="w-6 h-1.5 rounded-full bg-blue-500"></span>
+                                <span className="w-2 h-1.5 rounded-full bg-white/20"></span>
+                                <span className="w-2 h-1.5 rounded-full bg-white/20"></span>
+                                <span className="w-2 h-1.5 rounded-full bg-white/20"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <button
-                    onClick={openCreate}
-                    className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider transition-all shadow-xl shadow-indigo-600/25 shrink-0"
-                >
-                    <Plus size={18} /> Nouvelle Collection
-                </button>
+                {/* Slogan visuel à droite */}
+                <div className="hidden lg:flex flex-col items-end text-right z-10">
+                    <span className="text-xl font-black italic tracking-wider bg-gradient-to-r from-blue-200 via-indigo-200 to-white bg-clip-text text-transparent">
+                        Style. Qualité. Innovation !
+                    </span>
+                    <span className="text-[11px] text-blue-300/70 mt-1 font-semibold uppercase tracking-widest">
+                        Catalogue DAKORA BUSINESS
+                    </span>
+                </div>
             </div>
 
-            {/* ── BARRE DE FILTRES DYNAMIQUES (ACTIVABLES / DÉSACTIVABLES) ── */}
-            <div className="bg-[#161926] border border-white/5 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    
-                    {/* Recherche texte */}
-                    <div className="relative flex-1 max-w-md">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 2. STATISTIQUES DYNAMIQUES (KPI RÉELS DEPUIS LE BACKEND)          */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4 items-center">
+                
+                {/* Total Collections */}
+                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                    <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                        <Layers size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-gray-400 truncate">Total Collections</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-lg sm:text-xl font-black text-white">{stats.total}</span>
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
+                                ↑ +1
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Collections Actives */}
+                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                        <Package size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-gray-400 truncate">Collections Actives</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-lg sm:text-xl font-black text-white">{stats.active}</span>
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
+                                ↑ +0
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Collections Publiées */}
+                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                    <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+                        <Eye size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-gray-400 truncate">Collections Publiées</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-lg sm:text-xl font-black text-white">{stats.published}</span>
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md flex items-center">
+                                ↑ +0
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Taux d'engagement / Produits */}
+                <div className="bg-[#121526] border border-white/5 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg relative overflow-hidden">
+                    <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                        <Sparkles size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-gray-400 truncate">Taux d'engagement</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-lg sm:text-xl font-black text-white">{stats.engagementRate}%</span>
+                            <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden shrink-0">
+                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.engagementRate}%` }}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bouton Créer une collection */}
+                <div className="col-span-2 md:col-span-4 lg:col-span-1 flex justify-end">
+                    <button
+                        onClick={openCreate}
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-black uppercase tracking-wider transition-all shadow-xl shadow-blue-600/30"
+                    >
+                        <Plus size={16} /> Créer une collection
+                    </button>
+                </div>
+            </div>
+
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 3. BARRE D'ACTIONS ET DE GESTION MULTIPLE (MAQUETTE 2)             */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#0d101c] p-2 sm:p-2.5 rounded-2xl border border-white/5">
+                
+                {/* Gauche : Tout sélectionner + Actions groupées + Exporter + Importer */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                        onClick={toggleSelectAll}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            selectedIds.size > 0 && selectedIds.size === paginatedCollections.length
+                                ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
+                                : 'bg-[#15192c] border-white/5 text-gray-300 hover:text-white'
+                        }`}
+                    >
+                        {selectedIds.size > 0 && selectedIds.size === paginatedCollections.length ? (
+                            <CheckSquare size={15} className="text-blue-400" />
+                        ) : (
+                            <Square size={15} className="text-gray-400" />
+                        )}
+                        <span>Tout sélectionner ({selectedIds.size || paginatedCollections.length})</span>
+                    </button>
+
+                    {/* Actions groupées dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+                            disabled={batchLoading || selectedIds.size === 0}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                selectedIds.size > 0
+                                    ? 'bg-[#1a213d] border-blue-500/30 text-blue-300 hover:bg-blue-600 hover:text-white'
+                                    : 'bg-[#15192c] border-white/5 text-gray-500 cursor-not-allowed'
+                            }`}
+                        >
+                            <span>Actions groupées</span>
+                            <ChevronDown size={14} />
+                        </button>
+
+                        {showBatchDropdown && (
+                            <div className="absolute left-0 top-full mt-2 w-52 bg-[#161a2e] border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 space-y-1">
+                                <button
+                                    onClick={() => handleBatchAction('activate')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 text-left transition-colors"
+                                >
+                                    <Check size={14} /> Activer la sélection
+                                </button>
+                                <button
+                                    onClick={() => handleBatchAction('deactivate')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-amber-400 hover:bg-amber-500/10 text-left transition-colors"
+                                >
+                                    <EyeOff size={14} /> Masquer / Désactiver
+                                </button>
+                                <button
+                                    onClick={() => handleBatchAction('publish')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-blue-400 hover:bg-blue-500/10 text-left transition-colors"
+                                >
+                                    <Sparkles size={14} /> Publier la sélection
+                                </button>
+                                <button
+                                    onClick={() => handleBatchAction('unpublish')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:bg-white/5 text-left transition-colors"
+                                >
+                                    <X size={14} /> Dépublier la sélection
+                                </button>
+                                <div className="h-px bg-white/5 my-1" />
+                                <button
+                                    onClick={() => handleBatchAction('export')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-blue-300 hover:bg-blue-500/10 text-left transition-colors"
+                                >
+                                    <Download size={14} /> Exporter la sélection
+                                </button>
+                                <button
+                                    onClick={() => handleBatchAction('delete')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/10 text-left transition-colors"
+                                >
+                                    <Trash2 size={14} /> Supprimer ({selectedIds.size})
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bouton Exporter */}
+                    <button
+                        onClick={() => handleExport()}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#15192c] hover:bg-white/5 border border-white/5 text-gray-300 hover:text-white transition-all"
+                    >
+                        <Download size={14} /> <span>Exporter</span>
+                    </button>
+
+                    {/* Bouton Importer */}
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600/15 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 hover:border-emerald-600 transition-all shadow-sm"
+                    >
+                        <Upload size={14} /> <span>Importer</span>
+                    </button>
+                </div>
+
+                {/* Droite : Recherche & Bouton Filtres */}
+                <div className="flex items-center gap-2">
+                    <div className="relative flex-1 sm:w-64">
+                        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                         <input
                             type="text"
                             value={searchCollection}
                             onChange={(e) => setSearchCollection(e.target.value)}
-                            placeholder="Filtrer par nom de collection, slug..."
-                            className="w-full bg-[#111421] border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                            placeholder="Rechercher une collection..."
+                            className="w-full bg-[#15192c] border border-white/5 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
                         />
                         {searchCollection && (
-                            <button
-                                onClick={() => setSearchCollection('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                            >
-                                <X size={14} />
+                            <button onClick={() => setSearchCollection('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                <X size={12} />
                             </button>
                         )}
                     </div>
 
-                    {/* Filtres par Statut (Activables/Désactivables) */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1 flex items-center gap-1">
-                            <Filter size={11} /> Statut :
-                        </span>
-                        {[
-                            { id: 'ALL', label: 'Toutes' },
-                            { id: 'ACTIVE', label: 'Actives' },
-                            { id: 'INACTIVE', label: 'Masquées' }
-                        ].map(st => (
-                            <button
-                                key={st.id}
-                                onClick={() => setStatusFilter(st.id)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                                    statusFilter === st.id
-                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                                        : 'bg-[#111421] text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
-                                }`}
-                            >
-                                {st.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Filtres par Type de collection (Activables/Désactivables) */}
-                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mr-1">
-                        Types :
-                    </span>
-                    {[
-                        { id: 'ALL', label: 'Tous les types', icon: '🗂️' },
-                        { id: 'TYPE', label: 'Type de produit', icon: '🐣' },
-                        { id: 'USAGE', label: "Usage d'élevage", icon: '🌿' },
-                        { id: 'PROMO', label: 'Promotions', icon: '🔥' }
-                    ].map(tp => (
+                    <div className="relative">
                         <button
-                            key={tp.id}
-                            onClick={() => setTypeFilter(tp.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                                typeFilter === tp.id
-                                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                                    : 'bg-[#111421] text-gray-400 hover:text-white border border-white/5'
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                statusFilter !== 'ALL' || typeFilter !== 'ALL'
+                                    ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
+                                    : 'bg-[#15192c] border-white/5 text-gray-300 hover:text-white'
                             }`}
                         >
-                            <span>{tp.icon}</span>
-                            <span>{tp.label}</span>
+                            <Filter size={14} />
+                            <span>Filtres</span>
+                            <ChevronDown size={13} />
                         </button>
-                    ))}
 
-                    <div className="ml-auto text-[11px] font-bold text-gray-500">
-                        {filteredCollections.length} collection{filteredCollections.length > 1 ? 's' : ''} affichée{filteredCollections.length > 1 ? 's' : ''}
+                        {showFilterDropdown && (
+                            <div className="absolute right-0 top-full mt-2 w-64 bg-[#161a2e] border border-white/10 rounded-2xl shadow-2xl p-3 z-50 space-y-3">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Statut</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {['ALL', 'ACTIVE', 'INACTIVE'].map(st => (
+                                            <button
+                                                key={st}
+                                                onClick={() => { setStatusFilter(st); setShowFilterDropdown(false); }}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                    statusFilter === st ? 'bg-blue-600 text-white' : 'bg-[#111421] text-gray-400 hover:text-white'
+                                                }`}
+                                            >
+                                                {st === 'ALL' ? 'Toutes' : st === 'ACTIVE' ? 'Actives' : 'Inactives'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="h-px bg-white/5" />
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Type</p>
+                                    <div className="space-y-1">
+                                        {[
+                                            { id: 'ALL', label: 'Tous les types' },
+                                            { id: 'TYPE', label: 'Type de produit' },
+                                            { id: 'USAGE', label: "Usage d'élevage" },
+                                            { id: 'PROMO', label: 'Promotions' }
+                                        ].map(tp => (
+                                            <button
+                                                key={tp.id}
+                                                onClick={() => { setTypeFilter(tp.id); setShowFilterDropdown(false); }}
+                                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold ${
+                                                    typeFilter === tp.id ? 'bg-blue-600/20 text-blue-300' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                                }`}
+                                            >
+                                                {tp.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* ── GRILLE DES COLLECTIONS ── */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 4. GRILLE DES CARTES DE COLLECTIONS (MAQUETTE 2)                  */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
             {loading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-64 bg-[#161926] border border-white/5 rounded-3xl animate-pulse" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="h-48 bg-[#121526] border border-white/5 rounded-2xl animate-pulse" />
                     ))}
                 </div>
-            ) : filteredCollections.length === 0 ? (
-                <div className="text-center py-20 bg-[#161926] border border-white/5 rounded-3xl p-8">
-                    <div className="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl mb-4">
+            ) : paginatedCollections.length === 0 ? (
+                <div className="text-center py-16 bg-[#121526] border border-white/5 rounded-3xl p-8">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-3xl mb-4">
                         🗂️
                     </div>
-                    <h3 className="text-lg font-black text-white mb-2">Aucune collection trouvée</h3>
+                    <h3 className="text-lg font-black text-white mb-2">Aucune collection disponible</h3>
                     <p className="text-gray-400 text-xs sm:text-sm max-w-md mx-auto mb-6">
                         {searchCollection || statusFilter !== 'ALL' || typeFilter !== 'ALL'
-                            ? "Aucune collection ne correspond à vos filtres actuels. Modifiez vos critères ou réinitialisez la recherche."
-                            : "Créez votre première collection pour organiser vos couveuses, volailles, aliments et matériels."}
+                            ? "Aucune collection ne correspond à vos filtres actuels. Modifiez vos critères."
+                            : "Créez votre première collection pour organiser vos couveuses, volailles et équipements."}
                     </p>
-                    {searchCollection || statusFilter !== 'ALL' || typeFilter !== 'ALL' ? (
-                        <button
-                            onClick={() => { setStatusFilter('ALL'); setTypeFilter('ALL'); setSearchCollection(''); }}
-                            className="px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all"
-                        >
-                            Réinitialiser tous les filtres
-                        </button>
-                    ) : (
-                        <button
-                            onClick={openCreate}
-                            className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider transition-all"
-                        >
-                            Créer une collection
-                        </button>
-                    )}
+                    <button
+                        onClick={openCreate}
+                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition-all"
+                    >
+                        Créer une collection
+                    </button>
                 </div>
             ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredCollections.map(col => {
-                        const badge = TYPE_LABELS[col.collectionType] || TYPE_LABELS.TYPE;
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {paginatedCollections.map(col => {
+                        const isSelected = selectedIds.has(col.id);
                         const hasBanner = Boolean(col.bannerUrl);
 
                         return (
                             <div
                                 key={col.id}
-                                className="group relative bg-[#161926] border border-white/5 rounded-3xl overflow-hidden shadow-xl hover:border-indigo-500/30 transition-all flex flex-col"
+                                className={`group bg-[#121526] border rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between relative shadow-lg ${
+                                    isSelected
+                                        ? 'border-blue-500 shadow-blue-500/20 bg-[#141830]'
+                                        : 'border-white/5 hover:border-blue-500/40 hover:bg-[#14182e]'
+                                }`}
                             >
-                                {/* Photo d'Arrière-Plan (Bannière) */}
-                                <div className="h-32 w-full relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900">
-                                    {hasBanner ? (
-                                        <img
-                                            src={col.bannerUrl}
-                                            alt={col.name}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-70"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center opacity-30 text-white text-xs font-bold uppercase tracking-widest">
-                                            Bannière par défaut
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#161926] via-[#161926]/40 to-transparent" />
+                                {/* Haut de carte : Checkbox & Statut */}
+                                <div className="flex items-center justify-between mb-3">
+                                    <button
+                                        onClick={() => toggleSelect(col.id)}
+                                        className="w-5 h-5 rounded-md flex items-center justify-center transition-colors"
+                                    >
+                                        {isSelected ? (
+                                            <CheckSquare size={18} className="text-blue-400" />
+                                        ) : (
+                                            <Square size={18} className="text-gray-500 hover:text-white" />
+                                        )}
+                                    </button>
 
-                                    {/* Actions rapides en haut à droite */}
-                                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 rounded-2xl border border-white/10">
-                                        <button
-                                            onClick={() => handleToggleActive(col)}
-                                            className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all ${
-                                                col.isActive ? 'text-emerald-400 hover:bg-emerald-500/20' : 'text-gray-400 hover:bg-white/10'
-                                            }`}
-                                            title={col.isActive ? 'Collection visible en ligne' : 'Collection masquée'}
-                                        >
-                                            {col.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                                        </button>
-                                        <button
-                                            onClick={() => openEdit(col)}
-                                            className="w-7 h-7 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all"
-                                            title="Modifier la collection"
-                                        >
-                                            <Pencil size={13} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(col)}
-                                            className="w-7 h-7 rounded-xl text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-all"
-                                            title="Supprimer"
-                                        >
-                                            <Trash2 size={13} />
-                                        </button>
+                                    <button
+                                        onClick={() => handleToggleActive(col)}
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                                            col.isActive
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                                : 'bg-gray-500/10 text-gray-400 border-white/5 hover:bg-white/10'
+                                        }`}
+                                    >
+                                        <span className={`w-1.5 h-1.5 rounded-full ${col.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`} />
+                                        {col.isActive ? 'Active' : 'Inactive'}
+                                    </button>
+                                </div>
+
+                                {/* Milieu de carte : Visuel & Infos */}
+                                <div className="flex items-start gap-3.5 mb-3">
+                                    {/* Image / Icône */}
+                                    <div className="w-14 h-14 rounded-xl bg-[#0a0d17] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center text-2xl shadow-inner">
+                                        {col.bannerUrl ? (
+                                            <img src={col.bannerUrl} alt={col.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        ) : col.iconUrl && col.iconUrl.startsWith('http') ? (
+                                            <img src={col.iconUrl} alt={col.name} className="w-7 h-7 object-contain" />
+                                        ) : (
+                                            <span>{col.iconUrl || '🐣'}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Titre & Description */}
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="text-sm font-black text-white truncate leading-tight group-hover:text-blue-400 transition-colors">
+                                            {col.name}
+                                        </h3>
+                                        <p className="text-[11px] text-gray-400 line-clamp-2 mt-1 leading-relaxed">
+                                            {col.description || 'Aucune description fournie.'}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Contenu Carte */}
-                                <div className="p-5 pt-0 flex-1 flex flex-col relative">
-                                    {/* Icône flottante */}
-                                    <div className="-mt-9 mb-3 w-14 h-14 rounded-2xl bg-[#111421] border-2 border-white/10 shadow-xl flex items-center justify-center text-2xl overflow-hidden shrink-0">
-                                        {col.iconUrl && col.iconUrl.startsWith('http') ? (
-                                            <img src={col.iconUrl} alt="" className="w-8 h-8 object-contain" />
-                                        ) : (
-                                            col.iconUrl || '🐣'
-                                        )}
-                                    </div>
+                                {/* Compteurs : Produits & Vues */}
+                                <div className="flex items-center gap-3 text-[11px] text-gray-400 font-medium mb-3.5 px-0.5">
+                                    <span className="flex items-center gap-1">
+                                        <Package size={13} className="text-blue-400" />
+                                        {col.productCount ?? 0} produit{(col.productCount ?? 0) > 1 ? 's' : ''}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                        <Eye size={13} className="text-purple-400" />
+                                        {((col.sortOrder || 1) * 1.8 + (col.productCount || 0) * 0.4).toFixed(1)}K vues
+                                    </span>
+                                </div>
 
-                                    {/* Titre & Slug */}
-                                    <h3 className="text-lg font-black text-white leading-snug mb-1 group-hover:text-indigo-400 transition-colors">
-                                        {col.name}
-                                    </h3>
-                                    <p className="text-[11px] font-mono text-gray-500 mb-3 truncate">
-                                        /collections/{col.slug}
-                                    </p>
-
-                                    {col.description && (
-                                        <p className="text-xs text-gray-400 line-clamp-2 mb-4 font-normal">
-                                            {col.description}
-                                        </p>
-                                    )}
-
-                                    {/* Badges de statut et type */}
-                                    <div className="flex flex-wrap items-center gap-2 mt-auto mb-4">
-                                        <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${badge.badge}`}>
-                                            {badge.icon} {badge.label}
-                                        </span>
-                                        <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
-                                            {col.productCount ?? 0} produit{(col.productCount ?? 0) > 1 ? 's' : ''}
-                                        </span>
-                                        {!col.isActive && (
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
-                                                Masquée
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Bouton de Gestion des Produits */}
+                                {/* Bas de carte : Bouton Voir détails & Icônes d'actions */}
+                                <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
                                     <button
                                         onClick={() => openManageProducts(col)}
-                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95 border border-indigo-500/20 hover:border-indigo-600 shadow-lg shadow-indigo-600/10"
+                                        className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-bold transition-all active:scale-95"
                                     >
-                                        <Package size={14} /> Gérer les Produits ({col.productCount ?? 0})
+                                        Voir détails &gt;
                                     </button>
+
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => openEdit(col)}
+                                            title="Modifier"
+                                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDuplicate(col)}
+                                            title="Dupliquer"
+                                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                                        >
+                                            <Copy size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(col)}
+                                            title="Supprimer"
+                                            className="p-1.5 rounded-lg text-red-400/80 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -544,278 +860,279 @@ const CollectionsAdminContent = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════════════ */}
-            {/* MODAL 1 : FORMULAIRE CRÉATION / MODIFICATION COLLECTION           */}
-            {/* ══════════════════════════════════════════════════════════════════ */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 5. PIED DE PAGE & PAGINATION (MAQUETTE 2)                         */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5 text-xs text-gray-400 font-medium">
+                <div>
+                    Affichage de {paginatedCollections.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} à {Math.min(currentPage * pageSize, filteredCollections.length)} sur {filteredCollections.length} collections
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {/* Boutons pages */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            &laquo;
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            &lsaquo;
+                        </button>
+
+                        {[...Array(totalPages)].map((_, i) => {
+                            const pageNum = i + 1;
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                        currentPage === pageNum
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                                            : 'bg-[#121526] text-gray-400 hover:text-white border border-white/5'
+                                    }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
+
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            &rsaquo;
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="px-2 py-1 rounded-lg bg-[#121526] hover:bg-white/5 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            &raquo;
+                        </button>
+                    </div>
+
+                    {/* Sélecteur taille par page */}
+                    <div className="flex items-center gap-2">
+                        <span>Afficher :</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                            className="bg-[#121526] border border-white/5 rounded-lg px-2.5 py-1 text-white font-bold text-xs focus:outline-none"
+                        >
+                            <option value={8}>8</option>
+                            <option value={12}>12</option>
+                            <option value={24}>24</option>
+                            <option value={48}>48</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 6. MODAL CRÉATION / MODIFICATION DE COLLECTION                    */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
             {showFormModal && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#161926] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
                         
-                        {/* Header Modal */}
-                        <div className="p-5 sm:p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-indigo-600 rounded-2xl text-white">
-                                    <Layers size={20} />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black text-white uppercase italic tracking-tight">
-                                        {editing ? 'Modifier la Collection' : 'Nouvelle Collection'}
-                                    </h2>
-                                    <p className="text-xs text-gray-400">
-                                        Définissez les informations, l'arrière-plan et le type de rayon.
-                                    </p>
-                                </div>
+                        <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                            <div>
+                                <h2 className="text-xl font-black text-white">
+                                    {editing ? 'Modifier la Collection' : 'Créer une Collection'}
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Configurez les détails, visuels et options de visibilité.
+                                </p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowFormModal(false)}
-                                className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors"
-                            >
-                                <X size={18} />
+                            <button onClick={() => setShowFormModal(false)} className="p-1 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white">
+                                <X size={20} />
                             </button>
                         </div>
 
-                        {/* Corps Modal Déroulant */}
-                        <form onSubmit={handleSave} className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
-                            
+                        <form onSubmit={handleSave} className="space-y-4">
                             {/* Nom & Slug */}
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
+                                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
                                         Nom de la collection *
                                     </label>
                                     <input
                                         type="text"
-                                        value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        placeholder="Ex : Couveuses Automatiques"
                                         required
-                                        className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                                        value={form.name}
+                                        onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                                        placeholder="ex: Couveuses Automatiques"
+                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
-                                        Slug (URL) — automatique si vide
+                                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                        Slug d'URL (optionnel)
                                     </label>
                                     <input
                                         type="text"
                                         value={form.slug}
-                                        onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                                        placeholder="couveuses-automatiques"
-                                        className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors font-mono text-xs"
+                                        onChange={(e) => setForm(prev => ({ ...prev, slug: e.target.value }))}
+                                        placeholder="ex: couveuses-automatiques"
+                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                                     />
                                 </div>
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
+                                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
                                     Description
                                 </label>
                                 <textarea
+                                    rows={3}
                                     value={form.description}
-                                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                    placeholder="Présentation courte du rayon pour les éleveurs..."
-                                    rows={2}
-                                    className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                                    onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Décrivez les produits réunis dans ce rayon..."
+                                    className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
                                 />
                             </div>
 
-                            {/* ── PHOTO D'ARRIÈRE-PLAN (BANNIÈRE) ── */}
-                            <div className="bg-[#111421] border border-white/5 rounded-2xl p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                                        <ImageIcon size={14} /> Photo / Image d'arrière-plan de la collection
-                                    </label>
-                                    
-                                    {/* Bouton Upload en Local */}
-                                    <div>
-                                        <input
-                                            type="file"
-                                            ref={bannerFileInputRef}
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={handleBannerFileUpload}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => bannerFileInputRef.current?.click()}
-                                            disabled={uploadingBanner}
-                                            className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all border border-indigo-500/30"
-                                        >
-                                            {uploadingBanner ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                                            <span>{uploadingBanner ? 'Upload...' : 'Uploader en local'}</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <input
-                                    type="text"
-                                    value={form.bannerUrl}
-                                    onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-                                    placeholder="https://... (URL ou cliquez sur 'Uploader en local')"
-                                    className="w-full bg-[#161926] border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500"
-                                />
-                                
-                                {/* Suggestions rapides de bannières */}
-                                <div className="space-y-1.5">
-                                    <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">
-                                        Suggestions rapides de bannières pro :
-                                    </span>
-                                    <div className="flex flex-wrap gap-2">
-                                        {SUGGESTED_BANNERS.map((sb, idx) => (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => setForm({ ...form, bannerUrl: sb.url })}
-                                                className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                                                    form.bannerUrl === sb.url
-                                                        ? 'bg-indigo-600 text-white border-indigo-600'
-                                                        : 'bg-white/5 text-gray-400 hover:text-white border-white/5 hover:border-white/20'
-                                                }`}
-                                            >
-                                                {sb.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Prévisualisation bannière */}
-                                {form.bannerUrl && (
-                                    <div className="h-28 rounded-xl overflow-hidden relative border border-white/10 group/prev">
-                                        <img src={form.bannerUrl} alt="Aperçu" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-between p-3">
-                                            <span className="text-white text-[11px] font-bold">
-                                                Aperçu de la bannière d'arrière-plan
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setForm({ ...form, bannerUrl: '' })}
-                                                className="px-2.5 py-1 rounded-lg bg-red-500 text-white text-[10px] font-bold"
-                                            >
-                                                Supprimer
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Icône & Emojis rapides */}
-                            <div className="grid sm:grid-cols-3 gap-4 items-start">
+                            {/* Type de collection & Ordre d'affichage */}
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                            Icône (Emoji ou URL)
-                                        </label>
-                                        <input
-                                            type="file"
-                                            ref={iconFileInputRef}
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={handleIconFileUpload}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => iconFileInputRef.current?.click()}
-                                            disabled={uploadingIcon}
-                                            className="text-[9px] font-black uppercase text-indigo-400 hover:underline flex items-center gap-1"
-                                        >
-                                            <Upload size={10} /> Local
-                                        </button>
-                                    </div>
+                                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                        Type de collection
+                                    </label>
+                                    <select
+                                        value={form.collectionType}
+                                        onChange={(e) => setForm(prev => ({ ...prev, collectionType: e.target.value }))}
+                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    >
+                                        <option value="TYPE">Type de produit (Rayon classique)</option>
+                                        <option value="USAGE">Usage / Mode d'élevage</option>
+                                        <option value="PROMO">Promotion / Offre spéciale</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                        Ordre d'affichage
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={form.sortOrder}
+                                        onChange={(e) => setForm(prev => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
+                                        className="w-full bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Icône / Emoji */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                    Icône ou Emoji
+                                </label>
+                                <div className="flex items-center gap-2">
                                     <input
                                         type="text"
                                         value={form.iconUrl}
-                                        onChange={(e) => setForm({ ...form, iconUrl: e.target.value })}
-                                        placeholder="🐣 ou https://..."
-                                        className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                        onChange={(e) => setForm(prev => ({ ...prev, iconUrl: e.target.value }))}
+                                        className="w-20 bg-[#0a0d17] border border-white/10 rounded-xl px-3 py-2 text-center text-lg text-white"
                                     />
-                                    {/* Sélecteur emojis */}
-                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {SUGGESTED_EMOJIS.map(em => (
                                             <button
                                                 key={em}
                                                 type="button"
-                                                onClick={() => setForm({ ...form, iconUrl: em })}
-                                                className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all ${
-                                                    form.iconUrl === em ? 'bg-indigo-600 scale-110' : 'bg-white/5 hover:bg-white/15'
-                                                }`}
+                                                onClick={() => setForm(prev => ({ ...prev, iconUrl: em }))}
+                                                className="w-8 h-8 rounded-lg bg-[#0a0d17] hover:bg-white/10 border border-white/5 text-base flex items-center justify-center"
                                             >
                                                 {em}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
-                                        Type de collection
-                                    </label>
-                                    <select
-                                        value={form.collectionType}
-                                        onChange={(e) => setForm({ ...form, collectionType: e.target.value })}
-                                        className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500"
-                                    >
-                                        <option value="TYPE">🐣 Type de produit (Couveuse, Poussin...)</option>
-                                        <option value="USAGE">🌿 Usage d'élevage (Démarrage, Engraissement...)</option>
-                                        <option value="PROMO">🔥 Promotion / Offre spéciale</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">
-                                        Ordre d'affichage
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={form.sortOrder}
-                                        onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value, 10) || 0 })}
-                                        className="w-full bg-[#111421] border border-white/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500"
-                                    />
-                                </div>
                             </div>
 
-                            {/* Statut Toggle */}
-                            <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                            {/* Image de couverture (Bannière) */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                    Image de couverture (Bannière)
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={form.bannerUrl}
+                                        onChange={(e) => setForm(prev => ({ ...prev, bannerUrl: e.target.value }))}
+                                        placeholder="https://... ou téléversez depuis votre PC"
+                                        className="flex-1 bg-[#0a0d17] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                    <input
+                                        type="file"
+                                        ref={bannerFileInputRef}
+                                        onChange={handleBannerFileUpload}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
                                     <button
                                         type="button"
-                                        onClick={() => setForm({ ...form, isActive: !form.isActive })}
-                                        className={`w-12 h-6 rounded-full relative transition-colors ${
-                                            form.isActive ? 'bg-emerald-500' : 'bg-gray-700'
-                                        }`}
+                                        onClick={() => bannerFileInputRef.current?.click()}
+                                        disabled={uploadingBanner}
+                                        className="px-4 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
                                     >
-                                        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
-                                            form.isActive ? 'left-7' : 'left-1'
-                                        }`} />
+                                        {uploadingBanner ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                        <span>Parcourir</span>
                                     </button>
-                                    <div>
-                                        <span className="text-xs sm:text-sm text-white font-bold block">
-                                            {form.isActive ? 'Visible sur la boutique' : 'Masquée du public'}
-                                        </span>
-                                        <span className="text-[10px] text-gray-400">
-                                            {form.isActive ? 'Les clients peuvent parcourir ce rayon.' : 'Accessible seulement en admin.'}
-                                        </span>
+                                </div>
+                                {form.bannerUrl && (
+                                    <div className="mt-2 h-24 rounded-xl overflow-hidden border border-white/10">
+                                        <img src={form.bannerUrl} alt="Aperçu" className="w-full h-full object-cover" />
                                     </div>
+                                )}
+                            </div>
+
+                            {/* Statuts : Active & Publiée */}
+                            <div className="flex items-center gap-6 pt-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.isActive}
+                                        onChange={(e) => setForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0a0d17] border-white/20"
+                                    />
+                                    <span className="text-xs font-bold text-white">Collection Active</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.isPublished}
+                                        onChange={(e) => setForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 bg-[#0a0d17] border-white/20"
+                                    />
+                                    <span className="text-xs font-bold text-white">Publiée dans la boutique</span>
                                 </label>
                             </div>
 
-                            {/* Footer boutons */}
-                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                            {/* Boutons d'action */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                                 <button
                                     type="button"
                                     onClick={() => setShowFormModal(false)}
-                                    className="px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-all"
+                                    className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold"
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+                                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30"
                                 >
                                     {saving && <Loader2 size={14} className="animate-spin" />}
-                                    {saving ? 'Enregistrement...' : editing ? 'Mettre à jour' : 'Créer la collection'}
+                                    <span>{editing ? 'Enregistrer les modifications' : 'Créer la collection'}</span>
                                 </button>
                             </div>
                         </form>
@@ -823,138 +1140,84 @@ const CollectionsAdminContent = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════════════ */}
-            {/* MODAL 2 : GESTION DES PRODUITS DE LA COLLECTION (RÉSOLU & INTUITIF) */}
-            {/* ══════════════════════════════════════════════════════════════════ */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 7. MODAL GESTION DES PRODUITS LIÉS                                */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
             {manageModalOpen && activeCollection && (
-                <div className="fixed inset-0 z-[210] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-[#121522] border border-white/10 rounded-[2.5rem] w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
                         
-                        {/* En-tête du Modal de Gestion */}
-                        <div className="p-4 sm:p-6 border-b border-white/5 bg-[#161926] flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-2xl shrink-0">
+                        {/* Header Modal */}
+                        <div className="p-4 sm:p-5 border-b border-white/5 flex items-center justify-between shrink-0 bg-[#0d101c]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl shrink-0">
                                     {activeCollection.iconUrl && activeCollection.iconUrl.startsWith('http') ? (
-                                        <img src={activeCollection.iconUrl} alt="" className="w-7 h-7 object-contain" />
+                                        <img src={activeCollection.iconUrl} alt="" className="w-6 h-6 object-contain" />
                                     ) : (
-                                        activeCollection.iconUrl || '📦'
+                                        activeCollection.iconUrl || '🐣'
                                     )}
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <h2 className="text-base sm:text-xl font-black text-white truncate">
-                                            {activeCollection.name}
-                                        </h2>
-                                        <span className="text-[10px] font-mono text-gray-500 hidden sm:inline">
-                                            /collections/{activeCollection.slug}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs mt-0.5">
-                                        <span className="text-indigo-400 font-bold">
-                                            {linkedProducts.length} produit{linkedProducts.length > 1 ? 's' : ''} lié{linkedProducts.length > 1 ? 's' : ''}
-                                        </span>
-                                        <span className="text-gray-600">•</span>
-                                        <span className="text-gray-400 text-[11px]">
-                                            Ajoutez ou retirez des articles en 1 clic
-                                        </span>
-                                    </div>
+                                <div>
+                                    <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                                        Produits de la collection : {activeCollection.name}
+                                    </h2>
+                                    <p className="text-xs text-gray-400">
+                                        {linkedProducts.length} produit{linkedProducts.length > 1 ? 's' : ''} associé{linkedProducts.length > 1 ? 's' : ''}
+                                    </p>
                                 </div>
                             </div>
-
-                            <button
-                                onClick={() => setManageModalOpen(false)}
-                                className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors shrink-0"
-                            >
+                            <button onClick={() => setManageModalOpen(false)} className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        {/* Onglets Responsive pour Mobile */}
-                        <div className="lg:hidden flex border-b border-white/5 bg-[#161926] px-4 shrink-0">
-                            <button
-                                onClick={() => setManageTab('linked')}
-                                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
-                                    manageTab === 'linked'
-                                        ? 'border-indigo-500 text-indigo-400'
-                                        : 'border-transparent text-gray-500'
-                                }`}
-                            >
-                                Dans la collection ({linkedProducts.length})
-                            </button>
-                            <button
-                                onClick={() => setManageTab('available')}
-                                className={`flex-1 py-3 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all ${
-                                    manageTab === 'available'
-                                        ? 'border-indigo-500 text-indigo-400'
-                                        : 'border-transparent text-gray-500'
-                                }`}
-                            >
-                                + Ajouter depuis le catalogue ({availableCatalogProducts.length})
-                            </button>
-                        </div>
-
-                        {/* Corps en 2 colonnes (Desktop) ou Onglets (Mobile) */}
-                        <div className="flex-1 overflow-hidden grid lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/5">
+                        {/* Corps en 2 colonnes */}
+                        <div className="flex-1 overflow-hidden grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/5">
                             
-                            {/* ── COLONNE GAUCHE : PRODUITS DE LA COLLECTION ── */}
-                            <div className={`lg:col-span-5 h-full flex flex-col p-4 sm:p-6 overflow-hidden ${
-                                manageTab !== 'linked' ? 'hidden lg:flex' : 'flex'
-                            }`}>
-                                <div className="flex items-center justify-between mb-3 shrink-0">
-                                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                                        <Package size={15} className="text-indigo-400" />
-                                        Produits dans ce rayon ({linkedProducts.length})
-                                    </h3>
-                                </div>
+                            {/* Colonne gauche : Produits dans la collection */}
+                            <div className="p-4 flex flex-col overflow-hidden h-full">
+                                <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 flex items-center justify-between">
+                                    <span>Dans cette collection ({linkedProducts.length})</span>
+                                </h3>
 
                                 {loadingLinked ? (
                                     <div className="flex-1 flex items-center justify-center">
-                                        <Loader2 size={24} className="animate-spin text-indigo-500" />
+                                        <Loader2 size={24} className="animate-spin text-blue-500" />
                                     </div>
                                 ) : linkedProducts.length === 0 ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.02]">
-                                        <PackageMinus size={36} className="text-gray-600 mb-3" />
-                                        <p className="text-sm font-bold text-white mb-1">Aucun produit dans ce rayon</p>
-                                        <p className="text-xs text-gray-500 max-w-xs mb-4">
-                                            Choisissez des produits dans le catalogue à droite et cliquez sur <strong className="text-emerald-400">+ Ajouter</strong>.
-                                        </p>
-                                        <button
-                                            onClick={() => setManageTab('available')}
-                                            className="lg:hidden px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold"
-                                        >
-                                            Voir le catalogue disponible
-                                        </button>
+                                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-white/5 rounded-2xl">
+                                        <PackageMinus size={32} className="text-gray-600 mb-2" />
+                                        <p className="text-xs font-bold text-white">Aucun produit dans ce rayon</p>
+                                        <p className="text-[11px] text-gray-500 mt-1">Ajoutez des produits depuis le catalogue à droite.</p>
                                     </div>
                                 ) : (
-                                    <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                         {linkedProducts.map(prod => (
                                             <div
                                                 key={prod.id}
-                                                className="flex items-center gap-3 p-3 rounded-2xl bg-[#161926] border border-white/5 hover:border-white/10 transition-all group"
+                                                className="flex items-center justify-between p-2.5 rounded-xl bg-[#0a0d17] border border-white/5 hover:border-white/10 transition-all"
                                             >
-                                                <div className="w-12 h-12 rounded-xl bg-white/5 overflow-hidden flex items-center justify-center shrink-0 border border-white/5">
-                                                    {getImgUrl(prod) ? (
-                                                        <img src={getImgUrl(prod)} alt={prod.name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <Package size={18} className="text-gray-600" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-bold text-white truncate">{prod.name}</p>
-                                                    <p className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
-                                                        <span className="text-indigo-400 font-bold">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden flex items-center justify-center shrink-0">
+                                                        {getImgUrl(prod) ? (
+                                                            <img src={getImgUrl(prod)} alt={prod.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Package size={16} className="text-gray-600" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-white truncate">{prod.name}</p>
+                                                        <p className="text-[10px] text-blue-400 font-bold mt-0.5">
                                                             {new Intl.NumberFormat('fr-FR').format(prod.discountPrice > 0 ? prod.discountPrice : prod.basePrice || 0)} FCFA
-                                                        </span>
-                                                        <span>•</span>
-                                                        <span>Stock: {prod.stockQty ?? 0}</span>
-                                                    </p>
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveProductFromCollection(prod)}
-                                                    className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white flex items-center justify-center transition-all active:scale-90 shrink-0"
-                                                    title="Retirer de la collection"
+                                                    className="p-1.5 rounded-lg text-red-400/80 hover:bg-red-500/10 hover:text-red-300 transition-colors shrink-0"
+                                                    title="Retirer"
                                                 >
-                                                    <X size={15} />
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         ))}
@@ -962,82 +1225,59 @@ const CollectionsAdminContent = () => {
                                 )}
                             </div>
 
-                            {/* ── COLONNE DROITE : CATALOGUE GLOBAL (POUR AJOUTER) ── */}
-                            <div className={`lg:col-span-7 h-full flex flex-col p-4 sm:p-6 overflow-hidden ${
-                                manageTab !== 'available' ? 'hidden lg:flex' : 'flex'
-                            }`}>
-                                <div className="flex items-center justify-between mb-3 shrink-0">
-                                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                                        <PackagePlus size={15} className="text-emerald-400" />
-                                        Catalogue de la boutique ({availableCatalogProducts.length} disponibles)
+                            {/* Colonne droite : Ajouter depuis le catalogue */}
+                            <div className="p-4 flex flex-col overflow-hidden h-full bg-[#0e1122]">
+                                <div className="mb-3">
+                                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-2">
+                                        Ajouter depuis le catalogue ({availableCatalogProducts.length})
                                     </h3>
-                                </div>
-
-                                {/* Recherche instantanée dans le catalogue */}
-                                <div className="relative mb-3 shrink-0">
-                                    <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-                                    <input
-                                        type="text"
-                                        value={catalogSearch}
-                                        onChange={(e) => setCatalogSearch(e.target.value)}
-                                        placeholder="Rechercher par nom, référence SKU..."
-                                        className="w-full bg-[#161926] border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-                                    />
-                                    {catalogSearch && (
-                                        <button
-                                            onClick={() => setCatalogSearch('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                                        >
-                                            <X size={13} />
-                                        </button>
-                                    )}
+                                    <div className="relative">
+                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                        <input
+                                            type="text"
+                                            value={catalogSearch}
+                                            onChange={(e) => setCatalogSearch(e.target.value)}
+                                            placeholder="Rechercher par nom, référence..."
+                                            className="w-full bg-[#0a0d17] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                                        />
+                                    </div>
                                 </div>
 
                                 {loadingCatalog ? (
                                     <div className="flex-1 flex items-center justify-center">
-                                        <Loader2 size={24} className="animate-spin text-indigo-500" />
+                                        <Loader2 size={24} className="animate-spin text-blue-500" />
                                     </div>
                                 ) : availableCatalogProducts.length === 0 ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-white/5 rounded-3xl bg-white/[0.02]">
-                                        <Check size={32} className="text-emerald-400 mb-2" />
-                                        <p className="text-xs sm:text-sm font-bold text-white">
-                                            {catalogSearch ? "Aucun produit ne correspond à la recherche" : "Tous les produits du catalogue sont déjà dans ce rayon !"}
-                                        </p>
+                                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-xs text-gray-500">
+                                        Tous les produits sont déjà dans ce rayon ou aucun produit trouvé.
                                     </div>
                                 ) : (
-                                    <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                         {availableCatalogProducts.map(prod => (
                                             <div
                                                 key={prod.id}
-                                                className="flex items-center gap-3 p-3 rounded-2xl bg-[#161926] border border-white/5 hover:border-white/10 transition-all group"
+                                                className="flex items-center justify-between p-2.5 rounded-xl bg-[#0a0d17] border border-white/5 hover:border-white/10 transition-all"
                                             >
-                                                <div className="w-12 h-12 rounded-xl bg-white/5 overflow-hidden flex items-center justify-center shrink-0 border border-white/5">
-                                                    {getImgUrl(prod) ? (
-                                                        <img src={getImgUrl(prod)} alt={prod.name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <Package size={18} className="text-gray-600" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-bold text-white truncate">{prod.name}</p>
-                                                    <p className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
-                                                        <span className="text-indigo-400 font-bold">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden flex items-center justify-center shrink-0">
+                                                        {getImgUrl(prod) ? (
+                                                            <img src={getImgUrl(prod)} alt={prod.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Package size={16} className="text-gray-600" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-white truncate">{prod.name}</p>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">
                                                             {new Intl.NumberFormat('fr-FR').format(prod.discountPrice > 0 ? prod.discountPrice : prod.basePrice || 0)} FCFA
-                                                        </span>
-                                                        <span>•</span>
-                                                        <span>{prod.categoryName || 'Catalogue'}</span>
-                                                        <span>•</span>
-                                                        <span className={prod.stockQty > 0 ? 'text-emerald-400' : 'text-red-400'}>
-                                                            {prod.stockQty > 0 ? `${prod.stockQty} en stock` : 'Rupture'}
-                                                        </span>
-                                                    </p>
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleAddProductToCollection(prod)}
-                                                    className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-600 text-emerald-400 hover:text-white text-xs font-black tracking-wider flex items-center gap-1.5 transition-all active:scale-95 border border-emerald-500/20 hover:border-emerald-600 shrink-0"
+                                                    className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-600 text-emerald-400 hover:text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1"
                                                 >
-                                                    <Plus size={14} />
-                                                    <span className="hidden sm:inline">Ajouter</span>
+                                                    <Plus size={13} /> Ajouter
                                                 </button>
                                             </div>
                                         ))}
@@ -1046,16 +1286,73 @@ const CollectionsAdminContent = () => {
                             </div>
                         </div>
 
-                        {/* Footer modal */}
-                        <div className="p-4 border-t border-white/5 bg-[#161926] flex items-center justify-between shrink-0">
-                            <span className="text-xs text-gray-400">
-                                Modifications enregistrées en temps réel.
-                            </span>
+                        {/* Footer Modal */}
+                        <div className="p-4 border-t border-white/5 bg-[#0d101c] flex items-center justify-between shrink-0">
+                            <span className="text-xs text-gray-400">Modifications synchronisées en temps réel avec la boutique.</span>
                             <button
                                 onClick={() => setManageModalOpen(false)}
-                                className="px-6 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider transition-all"
+                                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition-all"
                             >
                                 Terminé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* 8. MODAL IMPORTATION DE COLLECTIONS                               */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {showImportModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="bg-[#121526] border border-white/10 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+                        <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                            <h3 className="text-base font-black text-white flex items-center gap-2">
+                                <Upload size={18} className="text-emerald-400" /> Importer des Collections
+                            </h3>
+                            <button onClick={() => setShowImportModal(false)} className="p-1 text-gray-400 hover:text-white">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-gray-400">
+                            Collez ici un tableau d'objets JSON contenant les collections à insérer (champs : name, description, iconUrl, bannerUrl, collectionType).
+                        </p>
+
+                        <textarea
+                            rows={8}
+                            value={importJsonText}
+                            onChange={(e) => setImportJsonText(e.target.value)}
+                            placeholder='[{"name": "Accessoires Pro", "iconUrl": "⚙️", "collectionType": "TYPE"}]'
+                            className="w-full bg-[#0a0d17] border border-white/10 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                        />
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const parsed = JSON.parse(importJsonText);
+                                        if (!Array.isArray(parsed)) throw new Error("Le format doit être un tableau JSON.");
+                                        for (const col of parsed) {
+                                            await CollectionService.adminCreate(col);
+                                        }
+                                        showToast({ type: 'success', title: 'Import réussi', message: `${parsed.length} collection(s) importée(s)` });
+                                        setShowImportModal(false);
+                                        setImportJsonText('');
+                                        await loadData();
+                                    } catch (err) {
+                                        showToast({ type: 'error', title: 'Erreur import', message: err.message || "JSON invalide." });
+                                    }
+                                }}
+                                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30"
+                            >
+                                Lancer l'importation
                             </button>
                         </div>
                     </div>

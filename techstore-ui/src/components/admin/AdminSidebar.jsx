@@ -4,22 +4,21 @@ import {
     BarChart3, Settings, Sun, Moon,
     ChevronLeft, ChevronRight, X, Layers, Truck,
     PackagePlus, LogOut, Globe, Lock, Flame,
-    LayoutGrid, Star, Clock
+    LayoutGrid, Star, Clock, FileText, Info
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useStockConfig } from '../../context/StockConfigContext';
+import logoImg from '../../assets/logo.jpeg';
 
 // ─── COMPOSANT AVATAR AVEC CERCEAUX ──────────────────────────────
-const UserAvatar = ({ user, isAdmin, size = 36 }) => {
+export const UserAvatar = ({ user, isAdmin, size = 36 }) => {
     const initiale = user?.username?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || 'A';
 
     if (isAdmin) {
-        // Cerceau arc-en-ciel animé pour l'admin
         return (
             <div className="relative shrink-0" style={{ width: size + 6, height: size + 6 }}>
-                {/* Anneau arc-en-ciel */}
                 <svg
                     className="absolute inset-0 animate-spin"
                     style={{ animationDuration: '3s', width: size + 6, height: size + 6 }}
@@ -46,7 +45,6 @@ const UserAvatar = ({ user, isAdmin, size = 36 }) => {
                         strokeLinecap="round"
                     />
                 </svg>
-                {/* Avatar */}
                 <div
                     className="absolute bg-indigo-600 flex items-center justify-center text-white font-black rounded-full overflow-hidden shadow-md"
                     style={{ inset: 3, fontSize: size * 0.38 }}
@@ -59,7 +57,6 @@ const UserAvatar = ({ user, isAdmin, size = 36 }) => {
         );
     }
 
-    // Cerceau vert pour les autres rôles
     return (
         <div className="relative shrink-0" style={{ width: size + 6, height: size + 6 }}>
             <div
@@ -90,8 +87,8 @@ const MENU_GROUPS = [
         label: 'Catalogue',
         items: [
             { icon: <Box size={20} />,        label: 'Produits',      path: '/admin/products' },
-            { icon: <Layers size={20} />,     label: 'Catégories',    path: '/admin/categories' },
             { icon: <LayoutGrid size={20} />, label: 'Collections',   path: '/admin/collections' },
+            { icon: <Layers size={20} />,     label: 'Catégories',    path: '/admin/categories' },
             { icon: <Flame size={20} />,       label: 'Promotions',    path: '/admin/promotions', iconClass: 'text-red-500' },
         ]
     },
@@ -112,20 +109,15 @@ const MENU_GROUPS = [
         items: [
             { icon: <ShoppingCart size={20} />, label: 'Commandes',   path: '/admin/orders' },
             { icon: <Users size={20} />,        label: 'Clients',     path: '/admin/users' },
-            { icon: <Star size={20} />,         label: 'Avis produits', path: '/admin/stats', iconClass: 'text-yellow-500' },
+            { icon: <Star size={20} />,         label: 'Avis & Commentaires', path: '/admin/stats', iconClass: 'text-yellow-500' },
+            { icon: <BarChart3 size={20} />,    label: 'Rapports & Analyses', path: '/admin/stats' },
         ]
     },
     {
-        label: 'Analyse',
-        items: [
-            { icon: <BarChart3 size={20} />,  label: 'Statistiques',  path: '/admin/stats' },
-            { icon: <Clock size={20} />,       label: 'Historique',   path: '/admin/history' },
-        ]
-    },
-    {
-        label: 'Configuration',
+        label: 'Paramètres & Contenu',
         items: [
             { icon: <Settings size={20} />,   label: 'Paramètres',    path: '/admin/settings' },
+            { icon: <FileText size={20} />,   label: 'À propos (CMS)', path: '/admin/about' },
         ]
     },
 ];
@@ -147,12 +139,11 @@ const AdminSidebar = ({ width, setWidth, isMobileOpen, setIsMobileOpen }) => {
     const sidebarClasses = `
         fixed lg:relative z-[150] h-full transition-all duration-300 border-r flex flex-col
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        ${isDark ? 'bg-[#111421] border-white/5' : 'bg-white border-gray-200'}
+        ${isDark ? 'bg-[#0f121d] border-white/5' : 'bg-white border-gray-200'}
     `;
 
     return (
         <>
-            {/* Overlay mobile */}
             {isMobileOpen && (
                 <div onClick={() => setIsMobileOpen(false)}
                     className="fixed inset-0 bg-black/60 z-[140] lg:hidden backdrop-blur-sm animate-in fade-in duration-300" />
@@ -160,7 +151,6 @@ const AdminSidebar = ({ width, setWidth, isMobileOpen, setIsMobileOpen }) => {
 
             <aside style={{ width: `${width}px` }} className={sidebarClasses}>
 
-                {/* Bouton réduire/étendre (desktop) */}
                 <button onClick={toggleCollapse}
                     className="hidden lg:flex absolute -right-3 top-20 bg-indigo-600 text-white rounded-full p-1 shadow-lg z-50 hover:scale-110 transition-transform">
                     {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -169,16 +159,16 @@ const AdminSidebar = ({ width, setWidth, isMobileOpen, setIsMobileOpen }) => {
                 {/* ── LOGO ── */}
                 <div className={`px-4 py-5 flex items-center justify-between border-b ${isDark ? 'border-white/5' : 'border-gray-100'} shrink-0`}>
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-indigo-500/10 p-0.5 shadow-lg shadow-indigo-500/20 shrink-0">
-                            <img src="/logo.png" alt="PEOC" className="w-full h-full object-contain rounded-lg"
-                                onError={e => { e.target.style.display = 'none'; }} />
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white/5 border border-white/10 p-0.5 shadow-lg shadow-indigo-500/20 shrink-0">
+                            <img src={logoImg} alt="DAKORA BUSINESS" className="w-full h-full object-contain rounded-lg"
+                                onError={e => { e.target.src = '/logo.png'; }} />
                         </div>
                         {(!isCollapsed || isMobileOpen) && (
                             <div className="flex flex-col min-w-0">
                                 <span className={`text-sm font-black tracking-tighter leading-none truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                                    PEOC
+                                    DAKORA BUSINESS
                                 </span>
-                                <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-1">
+                                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest leading-none mt-1">
                                     Administration
                                 </span>
                             </div>
@@ -189,128 +179,117 @@ const AdminSidebar = ({ width, setWidth, isMobileOpen, setIsMobileOpen }) => {
                     </button>
                 </div>
 
-                {/* ── NAVIGATION PAR GROUPES ── */}
-                <nav className="flex-1 overflow-y-auto custom-scrollbar px-2 py-3 space-y-4">
-                    {MENU_GROUPS.map(group => {
-                        // Filtrer les items qui ne font rien (pas de page encore)
-                        const visibleItems = group.items;
+                {/* ── NAVIGATION ── */}
+                <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
+                    {MENU_GROUPS.map((group, groupIdx) => (
+                        <div key={groupIdx} className="space-y-1">
+                            {(!isCollapsed || isMobileOpen) && (
+                                <p className={`px-3 text-[10px] font-black uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                                    {group.label}
+                                </p>
+                            )}
 
-                        return (
-                            <div key={group.label}>
-                                {/* Label du groupe (masqué si sidebar réduite) */}
-                                {(!isCollapsed || isMobileOpen) && (
-                                    <p className={`text-[9px] font-black uppercase tracking-[0.15em] px-3 mb-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                                        {group.label}
-                                    </p>
-                                )}
-                                <div className="space-y-0.5">
-                                    {visibleItems.map(item => {
-                                        const isBlocked = item.isBlockedKey && !stockConfig.manageStockViaSupply;
-                                        const isCurrent = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
+                            {group.items.map((item, itemIdx) => {
+                                const isActive = location.pathname === item.path ||
+                                    (item.path !== '/admin' && location.pathname.startsWith(item.path));
 
-                                        return (
-                                            <Link
-                                                key={item.path}
-                                                to={item.path}
-                                                onClick={() => setIsMobileOpen(false)}
-                                                title={isBlocked ? 'Désactivé dans Paramètres > Stocks' : item.label}
-                                                className={`flex items-center rounded-xl p-2.5 transition-all relative group
-                                                    ${isBlocked
-                                                        ? 'opacity-40 hover:opacity-70 border border-dashed border-red-500/30 text-red-400'
-                                                        : isCurrent
-                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                            : isDark
-                                                                ? 'text-gray-500 hover:text-gray-200 hover:bg-white/5'
-                                                                : 'text-slate-500 hover:text-slate-800 hover:bg-gray-50'
-                                                    }
-                                                    ${isCollapsed && !isMobileOpen ? 'justify-center' : 'gap-3'}
-                                                `}
-                                            >
-                                                {/* Icône */}
-                                                <span className={`shrink-0 ${item.iconClass || ''} ${isCurrent ? 'text-white' : ''}`}>
-                                                    {React.cloneElement(item.icon, {
-                                                        className: `${isCurrent ? 'text-white' : item.iconClass || ''}`
-                                                    })}
-                                                </span>
-                                                {/* Label */}
-                                                {(!isCollapsed || isMobileOpen) && (
-                                                    <span className={`text-sm font-semibold truncate flex-1 ${isBlocked ? 'line-through' : ''}`}>
-                                                        {item.label}
-                                                    </span>
-                                                )}
-                                                {/* Badge bloqué */}
-                                                {isBlocked && (!isCollapsed || isMobileOpen) && (
-                                                    <Lock size={10} className="text-red-400 shrink-0" />
-                                                )}
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </nav>
+                                const isBlocked = item.isBlockedKey && stockConfig.requiresConfig && !stockConfig.isConfigured;
 
-                {/* ── FOOTER ── */}
-                <div className={`px-2 py-3 border-t space-y-0.5 shrink-0 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-                    {/* Retour au site */}
-                    <Link to="/"
-                        className={`flex items-center rounded-xl p-2.5 text-emerald-500 hover:bg-emerald-500/10 transition-all
-                            ${isCollapsed && !isMobileOpen ? 'justify-center' : 'gap-3'}`}>
-                        <Globe size={18} />
-                        {(!isCollapsed || isMobileOpen) && <span className="text-sm font-semibold">Retour au site</span>}
-                    </Link>
+                                if (isBlocked) {
+                                    return (
+                                        <div
+                                            key={itemIdx}
+                                            onClick={() => navigate('/admin/settings?tab=stock')}
+                                            title="Stock désactivé : Cliquez pour configurer"
+                                            className={`
+                                                w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer opacity-50
+                                                ${isDark ? 'hover:bg-white/5 text-gray-500' : 'hover:bg-gray-100 text-slate-400'}
+                                                ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}
+                                            `}
+                                        >
+                                            <div className="relative shrink-0">
+                                                {item.icon}
+                                                <Lock size={10} className="absolute -top-1 -right-1 text-amber-500" />
+                                            </div>
+                                            {(!isCollapsed || isMobileOpen) && (
+                                                <span className="truncate flex-1 text-left">{item.label}</span>
+                                            )}
+                                        </div>
+                                    );
+                                }
 
-                    {/* Toggle thème */}
-                    <button onClick={toggleTheme}
-                        className={`w-full flex items-center rounded-xl p-2.5 transition-all
-                            ${isDark ? 'text-yellow-400 hover:bg-white/5' : 'text-indigo-600 hover:bg-gray-50'}
-                            ${isCollapsed && !isMobileOpen ? 'justify-center' : 'gap-3'}`}>
-                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                        {(!isCollapsed || isMobileOpen) && (
-                            <span className="text-sm font-semibold">Mode {isDark ? 'Clair' : 'Sombre'}</span>
-                        )}
+                                return (
+                                    <Link
+                                        key={itemIdx}
+                                        to={item.path}
+                                        title={isCollapsed ? item.label : undefined}
+                                        className={`
+                                            w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all relative
+                                            ${isActive
+                                                ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+                                                : isDark
+                                                    ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                    : 'text-slate-600 hover:text-slate-900 hover:bg-gray-100'
+                                            }
+                                            ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}
+                                        `}
+                                    >
+                                        <span className={`shrink-0 ${item.iconClass || ''}`}>
+                                            {item.icon}
+                                        </span>
+                                        {(!isCollapsed || isMobileOpen) && (
+                                            <span className="truncate">{item.label}</span>
+                                        )}
+                                        {isActive && !isCollapsed && (
+                                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── FOOTER / UTILISATEUR ── */}
+                <div className={`p-3 border-t ${isDark ? 'border-white/5 bg-[#0b0e14]/50' : 'border-gray-100 bg-gray-50'} shrink-0 space-y-2`}>
+                    {/* Bascule Mode Sombre */}
+                    <button
+                        onClick={toggleTheme}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            isDark ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-200 text-slate-600'
+                        } ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}`}
+                    >
+                        {isDark ? <Sun size={18} className="text-amber-400 shrink-0" /> : <Moon size={18} className="text-indigo-600 shrink-0" />}
+                        {(!isCollapsed || isMobileOpen) && <span>{isDark ? 'Mode Clair' : 'Mode Sombre'}</span>}
                     </button>
 
-                    {/* Déconnexion */}
-                    <button onClick={() => { logout(); navigate('/login'); }}
-                        className={`w-full flex items-center rounded-xl p-2.5 text-red-400 hover:bg-red-500/10 transition-all
-                            ${isCollapsed && !isMobileOpen ? 'justify-center' : 'gap-3'}`}>
-                        <LogOut size={18} />
-                        {(!isCollapsed || isMobileOpen) && <span className="text-sm font-semibold">Déconnexion</span>}
-                    </button>
-
-                    {/* Profil utilisateur */}
-                    <div className={`mt-2 p-2.5 rounded-xl flex items-center ${isDark ? 'bg-white/3' : 'bg-gray-50'}
-                        ${isCollapsed && !isMobileOpen ? 'justify-center' : 'gap-3'}`}>
-                        <UserAvatar user={user} isAdmin={isAdmin} size={32} />
+                    {/* Carte Utilisateur */}
+                    <div className={`flex items-center gap-2.5 p-2 rounded-2xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-white border border-gray-100'} ${isCollapsed && !isMobileOpen ? 'justify-center p-1' : ''}`}>
+                        <UserAvatar user={user} isAdmin={isAdmin} size={28} />
                         {(!isCollapsed || isMobileOpen) && (
-                            <div className="min-w-0 flex-1">
-                                <p className={`text-xs font-black truncate uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-black truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                                     {user?.username || user?.name || 'Admin'}
                                 </p>
-                                <p className={`text-[10px] truncate ${isAdmin ? 'text-indigo-400' : 'text-emerald-400'} font-bold`}>
-                                    {isAdmin ? 'Administrateur' : (user?.role || 'Membre')}
+                                <p className="text-[10px] text-gray-500 truncate leading-tight mt-0.5">
+                                    {isAdmin ? 'Administrateur' : 'Gestionnaire'}
                                 </p>
                             </div>
+                        )}
+                        {(!isCollapsed || isMobileOpen) && (
+                            <button
+                                onClick={logout}
+                                title="Se déconnecter"
+                                className="p-1.5 rounded-xl hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
+                            >
+                                <LogOut size={14} />
+                            </button>
                         )}
                     </div>
                 </div>
-
-                {/* Poignée redimensionnement desktop */}
-                <div
-                    onMouseDown={e => {
-                        const onMove = mv => setWidth(Math.max(80, Math.min(mv.clientX, 350)));
-                        const onUp = () => window.removeEventListener('mousemove', onMove);
-                        window.addEventListener('mousemove', onMove);
-                        window.addEventListener('mouseup', onUp);
-                    }}
-                    className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-indigo-500 transition-all hidden lg:block"
-                />
             </aside>
         </>
     );
 };
 
-export { UserAvatar };
 export default AdminSidebar;

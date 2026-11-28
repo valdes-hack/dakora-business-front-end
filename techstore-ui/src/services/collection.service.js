@@ -109,6 +109,23 @@ const CollectionService = {
         return response.data;
     },
 
+    /** Actions groupées (activer, désactiver, publier, dépublier, supprimer) */
+    adminBatchAction: async (action, ids) => {
+        const response = await api.patch('/admin/collections/batch', { action, ids });
+        invalidateCache();
+        return response.data;
+    },
+
+    /** Export CSV des collections sélectionnées ou de toutes les collections */
+    adminExportCsv: async (ids = []) => {
+        const params = ids && ids.length > 0 ? { ids: ids.join(',') } : {};
+        const response = await api.get('/admin/collections/export', {
+            params,
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
     /** Produits liés à une collection (admin, y compris inactifs) */
     adminGetProducts: async (id, page = 0, size = 100) => {
         const response = await api.get(`/admin/collections/${id}/products`, {
