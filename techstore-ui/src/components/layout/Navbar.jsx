@@ -1,4 +1,4 @@
-import logoImg from '../../assets/logo.jpeg';
+﻿import logoImg from '../../assets/logo.jpeg';
 import { Truck, ShieldCheck, Headphones, Heart } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';

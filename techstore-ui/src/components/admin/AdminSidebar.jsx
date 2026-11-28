@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
     LayoutDashboard, Box, Users, ShoppingCart,
     BarChart3, Settings, Sun, Moon,
@@ -252,7 +252,17 @@ const AdminSidebar = ({ width, setWidth, isMobileOpen, setIsMobileOpen }) => {
 
                 {/* ── FOOTER / UTILISATEUR ── */}
                 <div className={`p-3 border-t ${isDark ? 'border-white/5 bg-[#0b0e14]/50' : 'border-gray-100 bg-gray-50'} shrink-0 space-y-2`}>
-                    {/* Bascule Mode Sombre */}
+                    {/* Retour à la boutique */}
+                    <Link
+                        to="/"
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold transition-all bg-indigo-600/15 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 ${isCollapsed && !isMobileOpen ? 'justify-center px-0' : ''}`}
+                        title="Retour à la boutique"
+                    >
+                        <Globe size={18} className="shrink-0" />
+                        {(!isCollapsed || isMobileOpen) && <span>Retour à la boutique</span>}
+                    </Link>
+
+                {/* Bascule Mode Sombre */}
                     <button
                         onClick={toggleTheme}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     ArrowRight, LayoutGrid, Sparkles, Trophy, Heart,
@@ -108,7 +108,7 @@ const Collections = () => {
 
     if (loading) {
         return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8 mt-20">
                 <div className="h-64 bg-gray-100 dark:bg-[#121526] rounded-[2.5rem] animate-pulse border border-white/5" />
                 <div className="h-28 bg-gray-100 dark:bg-[#121526] rounded-2xl animate-pulse border border-white/5" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -121,12 +121,12 @@ const Collections = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 space-y-12">
+        <div className="pb-20 bg-gray-50 dark:bg-[#0b0e14] transition-colors duration-500 overflow-x-hidden">
 
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 1. GRANDE BANNIÈRE COMMERCIALE (CONFORME À LA MAQUETTE 1)         */}
             {/* ═════════════════════════════════════════════════════════════════ */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#071330] via-[#0b2158] to-[#0d1636] border border-blue-500/20 shadow-2xl p-6 sm:p-12 flex flex-col lg:flex-row items-center justify-between gap-8 min-h-[300px]">
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#050e24] via-[#071c4a] to-[#061030] shadow-2xl px-8 sm:px-16 pt-24 sm:pt-28 pb-12 sm:pb-16 flex flex-col lg:flex-row items-center justify-between gap-8 min-h-[380px]">
                 {/* Halos de lumière néon */}
                 <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-indigo-600/15 rounded-full blur-2xl pointer-events-none" />
@@ -197,15 +197,16 @@ const Collections = () => {
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 2. SECTION « NOS CATÉGORIES » (MAQUETTE 1)                        */}
             {/* ═════════════════════════════════════════════════════════════════ */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12 mt-10">
             {categories.length > 0 && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                                 <span className="w-1.5 h-6 bg-blue-500 rounded-full inline-block" />
                                 Nos Catégories
                             </h2>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 Parcourez nos différents rayons spécialisés
                             </p>
                         </div>
@@ -244,16 +245,16 @@ const Collections = () => {
                             <Link
                                 key={cat.id}
                                 to={`/category/${cat.slug}`}
-                                className="min-w-[130px] sm:min-w-[150px] p-4 rounded-2xl bg-[#121526] hover:bg-[#181d36] border border-white/5 hover:border-blue-500/30 transition-all flex flex-col items-center text-center group shadow-md shrink-0"
+                                className="min-w-[130px] sm:min-w-[150px] p-4 rounded-2xl bg-white dark:bg-[#121526] hover:bg-indigo-50 dark:hover:bg-[#181d36] border border-gray-100 dark:border-white/5 hover:border-blue-500/30 transition-all flex flex-col items-center text-center group shadow-sm dark:shadow-md shrink-0"
                             >
-                                <div className="w-12 h-12 rounded-xl bg-[#0a0d17] border border-white/5 flex items-center justify-center text-2xl mb-2.5 group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-[#0a0d17] border border-gray-100 dark:border-white/5 flex items-center justify-center text-2xl mb-2.5 group-hover:scale-110 transition-transform">
                                     {cat.iconUrl && cat.iconUrl.startsWith('http') ? (
                                         <img src={cat.iconUrl} alt={cat.name} className="w-7 h-7 object-contain" />
                                     ) : (
                                         <span>{cat.iconUrl || '🌾'}</span>
                                     )}
                                 </div>
-                                <p className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors truncate max-w-[120px]">
+                                <p className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-blue-400 transition-colors truncate max-w-[120px]">
                                     {cat.name}
                                 </p>
                                 <p className="text-[10px] text-gray-400 mt-0.5">
@@ -271,7 +272,7 @@ const Collections = () => {
             <div className="space-y-6 pt-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                             <Trophy size={20} className="text-amber-400" />
                             Nos Collections
                         </h2>
@@ -286,7 +287,7 @@ const Collections = () => {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-[#121526] border border-white/10 rounded-xl px-3 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-blue-500"
+                            className="bg-gray-100 dark:bg-[#121526] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-slate-800 dark:text-white font-bold text-xs focus:outline-none focus:border-blue-500"
                         >
                             <option value="popular">Plus populaires</option>
                             <option value="name">Nom (A-Z)</option>
@@ -297,9 +298,9 @@ const Collections = () => {
 
                 {/* Grille des collections */}
                 {sortedCollections.length === 0 ? (
-                    <div className="text-center py-20 bg-[#121526] rounded-3xl border border-white/5 p-8">
+                    <div className="text-center py-20 bg-white dark:bg-[#121526] rounded-3xl border border-gray-100 dark:border-white/5 p-8">
                         <Package size={40} className="mx-auto text-gray-600 mb-3" />
-                        <h3 className="text-base font-bold text-white">Aucune collection disponible pour le moment</h3>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">Aucune collection disponible pour le moment</h3>
                         <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
                             Nos rayons sont en cours de mise à jour. Découvrez l'ensemble des articles dans le catalogue général.
                         </p>
@@ -316,7 +317,7 @@ const Collections = () => {
                             return (
                                 <div
                                     key={col.id}
-                                    className="group rounded-3xl bg-[#121526] border border-white/5 hover:border-blue-500/40 p-4 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-600/10 flex flex-col justify-between relative overflow-hidden"
+                                    className="group rounded-3xl bg-white dark:bg-[#121526] border border-gray-100 dark:border-white/5 hover:border-blue-500/40 p-4 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-600/10 flex flex-col justify-between relative overflow-hidden"
                                 >
                                     {/* Arrière-plan lumineux au survol */}
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/15 transition-all" />
@@ -342,7 +343,7 @@ const Collections = () => {
 
                                         {/* Image de la collection */}
                                         <Link to={`/collections/${col.slug}`} className="block relative z-10">
-                                            <div className="h-44 rounded-2xl bg-gradient-to-br from-[#0c1022] to-[#161a33] border border-white/5 overflow-hidden flex items-center justify-center p-2 mb-3.5 group-hover:border-blue-500/20 transition-all">
+                                            <div className="h-44 rounded-2xl bg-gradient-to-br from-gray-50 dark:from-[#0c1022] to-gray-100 dark:to-[#161a33] border border-gray-100 dark:border-white/5 overflow-hidden flex items-center justify-center p-2 mb-3.5 group-hover:border-blue-500/20 transition-all">
                                                 {col.bannerUrl ? (
                                                     <img
                                                         src={col.bannerUrl}
@@ -358,19 +359,19 @@ const Collections = () => {
                                                 )}
                                             </div>
 
-                                            <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors truncate">
+                                            <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors truncate">
                                                 {col.name}
                                             </h3>
 
-                                            <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-relaxed min-h-[32px]">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 leading-relaxed min-h-[32px]">
                                                 {col.description || 'Découvrez notre sélection spéciale pour cette catégorie.'}
                                             </p>
                                         </Link>
                                     </div>
 
                                     {/* Bas de carte : Compteurs & Bouton Voir la collection */}
-                                    <div className="pt-4 mt-2 border-t border-white/5 relative z-10 flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5 text-[11px] text-gray-400 font-semibold">
+                                    <div className="pt-4 mt-2 border-t border-gray-100 dark:border-white/5 relative z-10 flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5 text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
                                             <span className="flex items-center gap-1">
                                                 <Package size={13} className="text-blue-400" />
                                                 {col.productCount ?? 0} produits
@@ -397,6 +398,7 @@ const Collections = () => {
                 )}
             </div>
 
+            </div>
             {/* ═════════════════════════════════════════════════════════════════ */}
             {/* 4. BOUTONS FLOTTANTS D'AIDE ET SCROLL (MAQUETTE 1)                 */}
             {/* ═════════════════════════════════════════════════════════════════ */}
