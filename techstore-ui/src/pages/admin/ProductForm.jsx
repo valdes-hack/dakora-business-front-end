@@ -302,13 +302,19 @@ const ProductForm = ({ product, onClose, onSave, theme }) => {
             });
 
             const payload = {
-                ...formData,
+                name: formData.name || '',
+                slug: formData.slug || '',
+                sku: formData.sku || '',
+                brand: formData.brand || 'PEOC',
+                description: formData.description || '',
                 basePrice: parseFloat(formData.basePrice) || 0,
                 costPrice: parseFloat(formData.costPrice) || 0,
-                discountPrice: formData.discountPrice !== '' && formData.discountPrice !== null ? parseFloat(formData.discountPrice) : null,
+                discountPrice: formData.discountPrice !== '' && formData.discountPrice !== null && formData.discountPrice !== undefined
+                    ? parseFloat(formData.discountPrice)
+                    : null,
                 stockQty: computedTotalStock,
-                categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
-                defaultSupplierId: formData.defaultSupplierId ? parseInt(formData.defaultSupplierId) : null,
+                categoryId: formData.categoryId && formData.categoryId !== '' ? parseInt(formData.categoryId) : null,
+                defaultSupplierId: formData.defaultSupplierId && formData.defaultSupplierId !== '' ? parseInt(formData.defaultSupplierId) : null,
                 specifications: Object.keys(specsObject).length > 0 ? JSON.stringify(specsObject) : null,
                 imageUrls: imageUrls,
                 variants: formattedVariants

@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import AdminSidebar from './AdminSidebar';
-import NotificationBell from './NotificationBell'; 
-import { ListFilter, Menu, Sun, Moon } from 'lucide-react';
+import AdminSidebar, { UserAvatar } from './AdminSidebar';
+import NotificationBell from './NotificationBell';
+import { ListFilter, Menu, Sun, Moon, ChevronDown, LogOut, Settings } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const AdminLayout = ({ children, filters }) => {
     // ---------------------------------------------------------
@@ -12,9 +14,20 @@ const AdminLayout = ({ children, filters }) => {
     const [filterWidth, setFilterWidth] = useState(320);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(true);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
 
     const { theme, toggleTheme } = useTheme();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const isDark = theme === 'dark';
+
+    // Fermer le menu user en cliquant ailleurs
+    useEffect(() => {
+        if (!userMenuOpen) return;
+        const close = () => setUserMenuOpen(false);
+        window.addEventListener('click', close);
+        return () => window.removeEventListener('click', close);
+    }, [userMenuOpen]);
 
     // ---------------------------------------------------------
     // 2. LOGIQUE DE REDIMENSIONNEMENT DYNAMIQUE
@@ -86,8 +99,8 @@ const AdminLayout = ({ children, filters }) => {
                         <h1 className="font-black italic tracking-tighter text-indigo-500 text-2xl select-none uppercase">AdminHub</h1>
                     </div>
 
-                    <div className="flex items-center space-x-3 md:space-x-5">
-                        {/* 🌙 / ☀️ TOGGLE THÈME CLAIR / SOMBRE */}
+                    <div className="flex items-center space-x-3 md:space-x-4">
+                        {/* 🌙 / ☀️ TOGGLE THÈME */}
                         <button
                             onClick={toggleTheme}
                             className={`p-2.5 rounded-xl border transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${
@@ -96,12 +109,11 @@ const AdminLayout = ({ children, filters }) => {
                                     : 'bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200'
                             }`}
                             title={`Passer en mode ${isDark ? 'Clair' : 'Sombre'}`}
-                            aria-label="Basculer le thème"
                         >
-                            {isDark ? <Sun size={19} /> : <Moon size={19} />}
+                            {isDark ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
 
-                        {/* 🔔 HUB TEMPS RÉEL (Produits, Commandes, Fournisseurs) */}
+                        {/* 🔔 NOTIFICATIONS */}
                         <NotificationBell />
 
                         {/* TOGGLE FILTRES */}
@@ -118,6 +130,72 @@ const AdminLayout = ({ children, filters }) => {
                                 <span className="hidden sm:inline">{isFilterOpen ? 'Fermer' : 'Filtres'}</span>
                             </button>
                         )}
+
+                        {/* 👤 PROFIL UTILISATEUR */}
+                        <div className="relative" onClick={e => e.stopPropagation()}>
+                            <button
+                                onClick={() => setUserMenuOpen(p => !p)}
+                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all hover:scale-105 ${
+                                    isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                }`}
+                            >
+                                {/* Avatar avec cerceau */}
+                                <UserAvatar
+                                    user={user}
+                                    isAdmin={user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN'}
+                                    size={30}
+                                />
+                                {/* Nom + rôle (masqué mobile) */}
+                                <div className="hidden md:flex flex-col text-left min-w-0">
+                                    <span className={`text-xs font-black truncate max-w-[100px] ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                                        {user?.username || user?.name || 'Administrateur'}
+                                    </span>
+                                    <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider truncate">
+                                        {user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN' ? 'Administrateur' : user?.role || 'Administrateur'}
+                                    </span>
+                                </div>
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {/* Menu déroulant profil */}
+                            {userMenuOpen && (
+                                <div className={`absolute right-0 top-full mt-2 w-52 rounded-2xl border shadow-2xl z-50 overflow-hidden ${
+                                    isDark ? 'bg-[#161926] border-white/10' : 'bg-white border-gray-200'
+                                }`}>
+                                    <div className={`px-4 py-3 border-b flex items-center gap-3 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                        <UserAvatar
+                                            user={user}
+                                            isAdmin={user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN'}
+                                            size={36}
+                                        />
+                                        <div>
+                                            <p className={`text-xs font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                                                {user?.username || user?.name || 'Administrateur'}
+                                            </p>
+                                            <p className="text-[10px] text-indigo-500 font-bold">
+                                                {user?.email || 'admin@peoc.cm'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2">
+                                        <button
+                                            onClick={() => { setUserMenuOpen(false); navigate('/admin/settings'); }}
+                                            className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                                isDark ? 'text-gray-300 hover:bg-white/5 hover:text-white' : 'text-gray-600 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <Settings size={14} /> Paramètres
+                                        </button>
+                                        <button
+                                            onClick={() => { logout(); navigate('/login'); }}
+                                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-all"
+                                        >
+                                            <LogOut size={14} /> Déconnexion
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 

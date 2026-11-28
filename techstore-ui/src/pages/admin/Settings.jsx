@@ -1,1500 +1,1273 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import baseApi from '../../api/axiosConfig';
-import { 
-    Save, Loader, Settings as SettingsIcon, Image as ImageIcon, Video, 
-    Plus, X, Upload, Building2, PhoneCall, Sparkles, CheckCircle2, 
-    AlertCircle, Eye, Globe, Mail, MapPin, Phone, Bell, Check, Flame, Percent,
-    LayoutGrid, RotateCcw, PackagePlus, Lock, Unlock, ChevronDown, ChevronUp, Layers
+import {
+    Save, Loader, Settings as SettingsIcon, Image as ImageIcon,
+    X, Upload, PhoneCall, CheckCircle2,
+    AlertCircle, Eye, Globe, Mail, MapPin, Phone, Bell, Flame,
+    LayoutGrid, PackagePlus, Lock, ChevronDown, Layers,
+    ChevronRight, Store, Hash, FileText, Share2, Search, Sliders, Shield,
+    AlertTriangle, ExternalLink, Server, Clock, BarChart3,
+    Video, Users, ShoppingCart
 } from 'lucide-react';
+
+// Icône "en attente/chargement" inline pour la stat pending
+const Loader2_ = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>;
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { useStockConfig } from '../../context/StockConfigContext';
 import { getFullImageUrl } from '../../utils/imageUtils';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// ═══════════════════════════════════════════
+// CATEGORIES DU PANNEAU DROIT
+// ═══════════════════════════════════════════
+const CATEGORIES = [
+    {
+        id: 'identity', icon: Store, label: 'Boutique & Identité',
+        desc: 'Personnalisez l\'identité de votre boutique', color: '#6366f1',
+        subsections: [
+            { id: 'identity.name',    label: 'Nom et logo de la boutique' },
+            { id: 'identity.desc',    label: 'Description et slogan' },
+            { id: 'identity.contact', label: 'Informations de contact' },
+            { id: 'identity.social',  label: 'Réseaux sociaux' },
+            { id: 'identity.meta',    label: 'Favicon et métadonnées' },
+        ],
+    },
+    {
+        id: 'stock', icon: PackagePlus, label: 'Gestion des stocks',
+        desc: 'Gérez vos stocks et variantes', color: '#f59e0b',
+        subsections: [
+            { id: 'stock.mode',   label: 'Mode de gestion' },
+            { id: 'stock.alerts', label: 'Alertes de stock faible' },
+        ],
+    },
+    {
+        id: 'banners', icon: ImageIcon, label: 'Bannières',
+        desc: 'Accueil, Promotions, Collections', color: '#8b5cf6',
+        subsections: [
+            { id: 'banners.home',        label: 'Bannière d\'accueil (slider + vidéo)' },
+            { id: 'banners.promotions',  label: 'Bannière Promotions' },
+            { id: 'banners.collections', label: 'Bannière Collections (défaut)' },
+        ],
+    },
+    {
+        id: 'contact', icon: PhoneCall, label: 'Contact & Support',
+        desc: 'Vos moyens de contact', color: '#10b981',
+        subsections: [
+            { id: 'contact.info',    label: 'Email, téléphone & WhatsApp' },
+            { id: 'contact.address', label: 'Adresse physique' },
+            { id: 'contact.hours',   label: 'Horaires de disponibilité' },
+        ],
+    },
+    {
+        id: 'bento', icon: LayoutGrid, label: 'Cartes Bento',
+        desc: 'Organisez vos cartes d\'accueil', color: '#06b6d4',
+        subsections: [
+            { id: 'bento.config', label: 'Configuration des 4 cartes' },
+        ],
+    },
+    {
+        id: 'alerts', icon: Bell, label: 'Alertes & Actions',
+        desc: 'Configurez vos alertes', color: '#ef4444',
+        subsections: [
+            { id: 'alerts.admin',  label: 'Notifications administrateur' },
+            { id: 'alerts.client', label: 'Notifications clients' },
+        ],
+    },
+    {
+        id: 'promotions', icon: Flame, label: 'Promos & Remises',
+        desc: 'Comportement des offres', color: '#f97316',
+        subsections: [
+            { id: 'promotions.settings', label: 'Paramètres des promotions' },
+        ],
+    },
+    {
+        id: 'seo', icon: Search, label: 'SEO & Référencement',
+        desc: 'Optimisez votre boutique', color: '#a855f7',
+        subsections: [
+            { id: 'seo.basic',  label: 'Titre & description SEO' },
+            { id: 'seo.social', label: 'Image de partage (OG)' },
+        ],
+    },
+    {
+        id: 'advanced', icon: Sliders, label: 'Avancées',
+        desc: 'Options avancées', color: '#6b7280',
+        subsections: [
+            { id: 'advanced.maintenance', label: 'Mode maintenance' },
+            { id: 'advanced.security',    label: 'Sécurité & Sessions' },
+        ],
+    },
+];
+
+// ═══════════════════════════════════════════
+// COMPOSANTS UI RÉUTILISABLES
+// (utilisent les classes Tailwind dark/light du projet)
+// ═══════════════════════════════════════════
+
+const SLabel = ({ children }) => (
+    <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500 dark:text-slate-400">
+        {children}
+    </label>
+);
+
+const SInput = ({ icon: Icon, ...props }) => (
+    <div className="relative">
+        {Icon && <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />}
+        <input
+            {...props}
+            className={`w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10
+                rounded-xl py-3 ${Icon ? 'pl-11' : 'pl-4'} pr-4 text-sm font-medium
+                text-slate-900 dark:text-white outline-none placeholder-gray-400 dark:placeholder-gray-600
+                focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all`}
+        />
+    </div>
+);
+
+const STextarea = (props) => (
+    <textarea
+        {...props}
+        rows={3}
+        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10
+            rounded-xl py-3 px-4 text-sm font-medium text-slate-900 dark:text-white
+            outline-none placeholder-gray-400 dark:placeholder-gray-600 resize-none
+            focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+    />
+);
+
+const Toggle = ({ value, onChange, label, desc, color = '#6366f1' }) => (
+    <div className="flex items-center justify-between p-4 rounded-xl gap-4
+        bg-gray-50 dark:bg-white/3 border border-gray-200 dark:border-white/5">
+        <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">{label}</p>
+            {desc && <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">{desc}</p>}
+        </div>
+        <button type="button" onClick={() => onChange(!value)}
+            style={{ background: value ? color : undefined }}
+            className={`relative w-12 h-6 rounded-full transition-colors shrink-0
+                ${value ? '' : 'bg-gray-300 dark:bg-white/20'}`}>
+            <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform"
+                style={{ transform: value ? 'translateX(26px)' : 'translateX(2px)' }} />
+        </button>
+    </div>
+);
+
+const SectionTitle = ({ title, desc, icon: Icon, color = '#6366f1' }) => (
+    <div className="mb-5 pb-4 border-b border-gray-100 dark:border-white/5">
+        <div className="flex items-center gap-2.5 mb-1">
+            {Icon && <Icon size={18} style={{ color }} />}
+            <h3 className="text-base font-black uppercase tracking-wide text-slate-900 dark:text-white">{title}</h3>
+        </div>
+        {desc && <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>}
+    </div>
+);
+
+// Bouton upload fichier + input caché
+const UploadBtn = ({ label, onUpload, loading, inputRef, accept = 'image/*' }) => (
+    <>
+        <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={onUpload} />
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider
+                border border-dashed border-indigo-500 text-indigo-500
+                hover:bg-indigo-500/10 transition-all disabled:opacity-50">
+            {loading ? <Loader size={13} className="animate-spin" /> : <Upload size={13} />}
+            {loading ? 'Envoi...' : label}
+        </button>
+    </>
+);
+
+const ImagePreview = ({ url, label, onRemove }) => {
+    if (!url) return null;
+    return (
+        <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-white/10">
+            <img src={getFullImageUrl(url)} alt={label} className="w-full h-36 object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3 justify-between">
+                <span className="text-white text-[10px] font-black uppercase tracking-wider">{label}</span>
+                {onRemove && (
+                    <button type="button" onClick={onRemove}
+                        className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors">
+                        <X size={12} />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ═══════════════════════════════════════════
+// STAT CARD  (couleurs du projet)
+// ═══════════════════════════════════════════
+const StatCard = ({ icon: Icon, value, label, change, color }) => (
+    <div className="bg-white dark:bg-[#161926] border border-gray-100 dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+            <div className="p-2.5 rounded-xl" style={{ background: `${color}22` }}>
+                <Icon size={20} style={{ color }} />
+            </div>
+            {change && <span className="text-xs font-black text-emerald-500">{change}</span>}
+        </div>
+        <div>
+            <div className="text-xl font-black text-slate-900 dark:text-white">{value}</div>
+            <div className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">{label}</div>
+        </div>
+    </div>
+);
+
+// ═══════════════════════════════════════════
+// FORMULAIRES PAR SOUS-SECTION
+// ═══════════════════════════════════════════
+
+// ── IDENTITÉ ──────────────────────────────
+const FormIdentityName = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const logoRef = useRef(null);
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const handleLogoUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, logoUrl: r.data.data }));
+            showToast('success', 'Logo mis à jour !');
+        } catch { showToast('error', 'Erreur upload logo'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Nom et Logo" desc="Apparaissent dans la navbar, le footer et les factures." icon={Store} color="#6366f1" />
+            <div>
+                <SLabel>Nom officiel du site *</SLabel>
+                <SInput name="siteName" value={formData.siteName} onChange={h} placeholder="PEOC (Petit Éleveur de l'Ouest Cameroun)" />
+            </div>
+            <div>
+                <SLabel>Sous-titre / Accroche</SLabel>
+                <SInput name="siteSubtitle" value={formData.siteSubtitle || ''} onChange={h} placeholder="Votre partenaire élevage au Cameroun" />
+            </div>
+            <div>
+                <SLabel>Logo de la boutique</SLabel>
+                <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/3 flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl border border-indigo-500/20 bg-indigo-500/10 flex items-center justify-center overflow-hidden shrink-0">
+                        {formData.logoUrl
+                            ? <img src={getFullImageUrl(formData.logoUrl)} alt="Logo" className="w-full h-full object-contain" />
+                            : <span className="text-2xl font-black text-indigo-500">{(formData.siteName || 'P')[0]}</span>}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                        <SInput name="logoUrl" value={formData.logoUrl || ''} onChange={h} placeholder="https://..." />
+                        <div className="flex items-center gap-3">
+                            <UploadBtn label="Uploader" onUpload={handleLogoUpload} loading={uploadingFile} inputRef={logoRef} />
+                            {formData.logoUrl && (
+                                <button type="button" onClick={() => setFormData(p => ({ ...p, logoUrl: '' }))}
+                                    className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">
+                                    Supprimer
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FormIdentityDesc = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Description & Slogan" desc="Présentez votre boutique aux visiteurs." icon={FileText} color="#6366f1" />
+            <div><SLabel>Description courte</SLabel><STextarea name="siteDescription" value={formData.siteDescription || ''} onChange={h} placeholder="Votre boutique spécialisée en équipements d'élevage..." /></div>
+            <div><SLabel>Slogan</SLabel><SInput name="siteSlogan" value={formData.siteSlogan || ''} onChange={h} placeholder="Qualité · Innovation · Confiance" /></div>
+        </div>
+    );
+};
+
+const FormIdentityContact = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Informations de contact" icon={PhoneCall} color="#10b981" />
+            <div><SLabel>Email de contact *</SLabel><SInput icon={Mail} type="email" name="contactEmail" value={formData.contactEmail} onChange={h} placeholder="contact@peoc.cm" /></div>
+            <div><SLabel>Téléphone / WhatsApp *</SLabel><SInput icon={Phone} name="contactPhone" value={formData.contactPhone} onChange={h} placeholder="+237 686 669 222" /></div>
+            <div><SLabel>Adresse physique</SLabel><SInput icon={MapPin} name="contactAddress" value={formData.contactAddress} onChange={h} placeholder="Bafoussam, Ouest — Cameroun" /></div>
+        </div>
+    );
+};
+
+const FormIdentitySocial = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Réseaux sociaux" icon={Share2} color="#6366f1" />
+            {[
+                { name: 'facebookUrl', label: 'Facebook' },
+                { name: 'instagramUrl', label: 'Instagram' },
+                { name: 'twitterUrl', label: 'Twitter / X' },
+                { name: 'youtubeUrl', label: 'YouTube' },
+                { name: 'whatsappNumber', label: 'WhatsApp' },
+            ].map(s => (
+                <div key={s.name}><SLabel>{s.label}</SLabel><SInput icon={Globe} name={s.name} value={formData[s.name] || ''} onChange={h} placeholder="https://..." /></div>
+            ))}
+        </div>
+    );
+};
+
+const FormIdentityMeta = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const favRef = useRef(null);
+    const handleFavUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, faviconUrl: r.data.data }));
+            showToast('success', 'Favicon mis à jour !');
+        } catch { showToast('error', 'Erreur upload favicon'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Favicon & Métadonnées" icon={Hash} color="#6366f1" />
+            <div>
+                <SLabel>URL du Favicon</SLabel>
+                <SInput name="faviconUrl" value={formData.faviconUrl || ''} onChange={h} placeholder="https://..." />
+                <div className="flex items-center gap-3 mt-2">
+                    <UploadBtn label="Uploader favicon" onUpload={handleFavUpload} loading={uploadingFile} inputRef={favRef} />
+                    {formData.faviconUrl && <img src={getFullImageUrl(formData.faviconUrl)} alt="favicon" className="w-8 h-8 rounded object-contain border border-gray-200 dark:border-white/10" />}
+                </div>
+            </div>
+            <div><SLabel>Titre SEO</SLabel><SInput name="seoTitle" value={formData.seoTitle || ''} onChange={h} placeholder="PEOC — Équipements d'élevage au Cameroun" /></div>
+            <div><SLabel>Description meta</SLabel><STextarea name="seoDescription" value={formData.seoDescription || ''} onChange={h} placeholder="Boutique spécialisée en poussins, couveuses..." /></div>
+        </div>
+    );
+};
+
+// ── STOCK ─────────────────────────────────
+const FormStockMode = ({ stockConfig, updateStockConfig, showToast }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Mode de gestion des stocks" desc="Canaux autorisés pour entrer du stock." icon={PackagePlus} color="#f59e0b" />
+        <Toggle value={stockConfig.manageStockViaSupply} label="Gérer via Ravitaillement"
+            desc="Enregistrer les arrivages via bons fournisseurs." color="#6366f1"
+            onChange={v => {
+                if (!v && !stockConfig.manageStockDirectly) { showToast('error', 'Gardez au moins un mode actif.'); return; }
+                updateStockConfig({ manageStockViaSupply: v });
+                showToast(v ? 'success' : 'error', v ? 'Ravitaillement activé !' : 'Ravitaillement bloqué !');
+            }} />
+        <Toggle value={stockConfig.manageStockDirectly} label="Saisie directe dans la fiche produit"
+            desc="Saisir le stock dans le formulaire produit." color="#10b981"
+            onChange={v => {
+                if (!v && !stockConfig.manageStockViaSupply) { showToast('error', 'Gardez au moins un mode actif.'); return; }
+                updateStockConfig({ manageStockDirectly: v });
+                showToast('success', v ? 'Saisie directe activée !' : 'Saisie directe désactivée !');
+            }} />
+        <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-xs text-gray-500 dark:text-gray-400">
+            ⚡ Les changements prennent effet instantanément dans toute l'application.
+        </div>
+    </div>
+);
+
+const FormStockAlerts = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Alertes de stock faible" desc="Alerte quand le stock passe sous un seuil." icon={AlertTriangle} color="#f59e0b" />
+            <div>
+                <SLabel>Seuil minimum de stock</SLabel>
+                <SInput type="number" name="stockAlertThreshold" value={formData.stockAlertThreshold || 5} onChange={h} placeholder="5" />
+                <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">Alerte si un produit passe en dessous de ce seuil.</p>
+            </div>
+        </div>
+    );
+};
+
+// ── BANNIÈRES ─────────────────────────────
+// Bloc réutilisable pour une bannière (photo + vidéo)
+const BannerBlock = ({ title, imageKey, videoKey, formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const imgRef = useRef(null);
+    const vidRef = useRef(null);
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+
+    const handleUpload = async (e, key, successMsg) => {
+        if (!e.target.files?.[0]) return;
+        const isVideo = e.target.files[0].type.startsWith('video');
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, [key]: r.data.data }));
+            showToast('success', successMsg);
+        } catch { showToast('error', 'Erreur upload'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+
+    return (
+        <div className="space-y-5 p-5 rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#161926]">
+            <p className="text-xs font-black uppercase tracking-widest text-indigo-500">{title}</p>
+
+            {/* IMAGE */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <ImageIcon size={14} className="text-gray-400 dark:text-gray-500" />
+                    <SLabel>Photo / Image de bannière</SLabel>
+                </div>
+                <SInput name={imageKey} value={formData[imageKey] || ''} onChange={h} placeholder="https://... ou coller une URL d'image" />
+                <div className="flex gap-3 items-center flex-wrap">
+                    <UploadBtn label="📷 Uploader une photo" onUpload={e => handleUpload(e, imageKey, 'Photo mise à jour !')} loading={uploadingFile} inputRef={imgRef} accept="image/*" />
+                    {formData[imageKey] && (
+                        <button type="button" onClick={() => setFormData(p => ({ ...p, [imageKey]: '' }))}
+                            className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">
+                            Supprimer la photo
+                        </button>
+                    )}
+                </div>
+                <ImagePreview url={formData[imageKey]} label={`Aperçu — ${title}`} onRemove={() => setFormData(p => ({ ...p, [imageKey]: '' }))} />
+            </div>
+
+            {/* VIDÉO */}
+            {videoKey && (
+                <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                        <Video size={14} className="text-gray-400 dark:text-gray-500" />
+                        <SLabel>Vidéo de bannière (optionnel)</SLabel>
+                    </div>
+                    <SInput name={videoKey} value={formData[videoKey] || ''} onChange={h} placeholder="https://... ou coller une URL vidéo MP4" />
+                    <div className="flex gap-3 items-center flex-wrap">
+                        <UploadBtn label="🎬 Uploader une vidéo" onUpload={e => handleUpload(e, videoKey, 'Vidéo mise à jour !')} loading={uploadingFile} inputRef={vidRef} accept="video/*" />
+                        {formData[videoKey] && (
+                            <button type="button" onClick={() => setFormData(p => ({ ...p, [videoKey]: '' }))}
+                                className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">
+                                Supprimer la vidéo
+                            </button>
+                        )}
+                    </div>
+                    {formData[videoKey] && (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-500 flex items-center gap-2">
+                            <CheckCircle2 size={13} /> Vidéo définie — elle aura la priorité sur la photo.
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Bannière accueil : slider images + vidéo séparés
+const FormBannersHome = ({ heroImagesUrls, setHeroImagesUrls, heroVideoUrl, setHeroVideoUrl, uploadingFile, setUploadingFile, showToast }) => {
+    const [newLink, setNewLink] = useState('');
+    const imgRef = useRef(null);
+    const vidRef = useRef(null);
+
+    const handleAddLink = () => {
+        if (newLink.trim()) { setHeroImagesUrls(p => [...p, newLink.trim()]); setNewLink(''); showToast('success', 'Image ajoutée !'); }
+    };
+
+    const handleImgUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setHeroImagesUrls(p => [...p, r.data.data]);
+            showToast('success', 'Image ajoutée au slider !');
+        } catch { showToast('error', 'Erreur upload'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+
+    const handleVidUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setHeroVideoUrl(r.data.data);
+            showToast('success', 'Vidéo mise à jour !');
+        } catch { showToast('error', 'Erreur upload'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+
+    return (
+        <div className="space-y-6">
+            <SectionTitle title="Bannière d'accueil" desc="Slider d'images + vidéo de présentation." icon={ImageIcon} color="#8b5cf6" />
+
+            {/* Images slider */}
+            <div className="p-5 rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#161926] space-y-4">
+                <div className="flex items-center gap-2">
+                    <ImageIcon size={14} className="text-gray-400 dark:text-gray-500" />
+                    <span className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        Photos / Images du slider ({heroImagesUrls.length})
+                    </span>
+                </div>
+
+                {heroImagesUrls.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        {heroImagesUrls.map((url, i) => (
+                            <div key={i} className="relative group rounded-xl overflow-hidden aspect-video border border-gray-200 dark:border-white/10">
+                                <img src={getFullImageUrl(url)} alt={`Slide ${i+1}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button type="button" onClick={() => setHeroImagesUrls(p => p.filter((_, idx) => idx !== i))}
+                                        className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-black px-2 py-0.5 rounded">#{i+1}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 p-6 text-center">
+                        <ImageIcon size={28} className="mx-auto mb-2 text-gray-400 dark:text-gray-600" />
+                        <p className="text-xs text-gray-400">Aucune image — ajoutez-en ci-dessous</p>
+                    </div>
+                )}
+
+                <div className="flex gap-2">
+                    <SInput value={newLink} onChange={e => setNewLink(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddLink())}
+                        placeholder="https://... (URL d'image)" />
+                    <button type="button" onClick={handleAddLink}
+                        className="px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition-colors whitespace-nowrap">
+                        + Ajouter
+                    </button>
+                </div>
+                <UploadBtn label="📷 Uploader une photo" onUpload={handleImgUpload} loading={uploadingFile} inputRef={imgRef} accept="image/*" />
+            </div>
+
+            {/* Vidéo hero */}
+            <div className="p-5 rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#161926] space-y-4">
+                <div className="flex items-center gap-2">
+                    <Video size={14} className="text-gray-400 dark:text-gray-500" />
+                    <span className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        Vidéo d'accueil (prioritaire sur les images)
+                    </span>
+                </div>
+                <SInput value={heroVideoUrl} onChange={e => setHeroVideoUrl(e.target.value)} placeholder="https://... (URL vidéo MP4)" />
+                <div className="flex gap-3 items-center flex-wrap">
+                    <UploadBtn label="🎬 Uploader une vidéo" onUpload={handleVidUpload} loading={uploadingFile} inputRef={vidRef} accept="video/*" />
+                    {heroVideoUrl && (
+                        <button type="button" onClick={() => setHeroVideoUrl('')}
+                            className="text-xs font-bold text-red-400 hover:text-red-500 transition-colors">
+                            Supprimer la vidéo
+                        </button>
+                    )}
+                </div>
+                {heroVideoUrl && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-500 flex items-center gap-2">
+                        <CheckCircle2 size={13} /> Vidéo définie — elle s'affiche en premier dans le slider.
+                    </div>
+                )}
+                <p className="text-xs text-gray-400">💡 Si une vidéo est définie, elle apparaît avant les photos dans le slider.</p>
+            </div>
+        </div>
+    );
+};
+
+const FormBannersPromotions = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Bannière Promotions" desc="Image et vidéo affichées en haut de la page Promotions." icon={Flame} color="#f97316" />
+        <BannerBlock title="Bannière de la page Promotions" imageKey="promoBannerUrl" videoKey="promoBannerVideoUrl"
+            formData={formData} setFormData={setFormData} uploadingFile={uploadingFile} setUploadingFile={setUploadingFile} showToast={showToast} />
+    </div>
+);
+
+const FormBannersCollections = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Bannière Collections (défaut)" desc="Utilisée pour les collections sans bannière personnalisée." icon={Layers} color="#8b5cf6" />
+        <BannerBlock title="Bannière par défaut des collections" imageKey="defaultCollectionBannerUrl" videoKey="collectionBannerVideoUrl"
+            formData={formData} setFormData={setFormData} uploadingFile={uploadingFile} setUploadingFile={setUploadingFile} showToast={showToast} />
+        <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <p className="text-sm font-bold text-indigo-400">Bannières par collection individuelle</p>
+                <p className="text-xs text-gray-400 mt-0.5">Chaque collection peut avoir sa propre bannière (photo + vidéo) depuis le module Collections.</p>
+            </div>
+            <a href="/admin/collections" className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider transition-colors whitespace-nowrap">
+                Gérer →
+            </a>
+        </div>
+    </div>
+);
+
+// ── CONTACT ───────────────────────────────
+const FormContactInfo = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Email, Téléphone & WhatsApp" icon={PhoneCall} color="#10b981" />
+            <div><SLabel>Email de contact *</SLabel><SInput icon={Mail} type="email" name="contactEmail" value={formData.contactEmail} onChange={h} placeholder="contact@peoc.cm" /></div>
+            <div><SLabel>Téléphone *</SLabel><SInput icon={Phone} name="contactPhone" value={formData.contactPhone} onChange={h} placeholder="+237 686 669 222" /></div>
+            <div><SLabel>Numéro WhatsApp</SLabel><SInput name="whatsappNumber" value={formData.whatsappNumber || ''} onChange={h} placeholder="+237 686 669 222" /></div>
+        </div>
+    );
+};
+
+const FormContactAddress = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Adresse physique" icon={MapPin} color="#10b981" />
+            <div><SLabel>Adresse complète</SLabel><SInput icon={MapPin} name="contactAddress" value={formData.contactAddress} onChange={h} placeholder="Bafoussam, Ouest — Cameroun" /></div>
+            <div><SLabel>Ville</SLabel><SInput name="contactCity" value={formData.contactCity || ''} onChange={h} placeholder="Bafoussam" /></div>
+        </div>
+    );
+};
+
+const FormContactHours = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Horaires de disponibilité" icon={Clock} color="#10b981" />
+            <div><SLabel>Horaires (texte libre)</SLabel><STextarea name="businessHours" value={formData.businessHours || ''} onChange={h} placeholder="Lun–Sam : 8h00–18h00 / Dim : 10h–14h" /></div>
+        </div>
+    );
+};
+
+// ── BENTO ─────────────────────────────────
+const BentoCardRow = ({ card, formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const imgRef = useRef(null);
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const handleUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, [card.imageKey]: r.data.data }));
+            showToast('success', 'Image mise à jour !');
+        } catch { showToast('error', 'Erreur upload'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+    return (
+        <div className="p-4 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/3 space-y-3">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-white">{card.label}</p>
+            <div className="flex gap-3">
+                <div className="w-20 h-20 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shrink-0 bg-gray-100 dark:bg-white/5">
+                    {formData[card.imageKey]
+                        ? <img src={getFullImageUrl(formData[card.imageKey])} alt={card.label} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={20} className="text-gray-400" /></div>}
+                </div>
+                <div className="flex-1 space-y-2">
+                    <SInput name={card.imageKey} value={formData[card.imageKey] || ''} onChange={h} placeholder="https://..." />
+                    <UploadBtn label="📷 Uploader" onUpload={handleUpload} loading={uploadingFile} inputRef={imgRef} accept="image/*" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FormBentoConfig = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const cards = [
+        { key: 'bentoPoultry', imageKey: 'bentoPoultryImageUrl', label: 'Carte 1 — Volailles & Poussins' },
+        { key: 'bentoIncubator', imageKey: 'bentoIncubatorImageUrl', label: 'Carte 2 — Couveuses Auto' },
+        { key: 'bentoFeed', imageKey: 'bentoFeedImageUrl', label: 'Carte 3 — Aliments & Granulés' },
+        { key: 'bentoHealth', imageKey: 'bentoHealthImageUrl', label: 'Carte 4 — Soins Vétérinaires' },
+    ];
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Configuration des 4 Cartes Bento" desc="Les cartes visuelles sous la bannière d'accueil." icon={LayoutGrid} color="#06b6d4" />
+            {cards.map(c => (
+                <BentoCardRow key={c.key} card={c} formData={formData} setFormData={setFormData}
+                    uploadingFile={uploadingFile} setUploadingFile={setUploadingFile} showToast={showToast} />
+            ))}
+        </div>
+    );
+};
+
+// ── ALERTES ───────────────────────────────
+const FormAlertsAdmin = ({ notificationConfig, updateNotificationConfig }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Notifications administrateur" icon={Bell} color="#ef4444" />
+        <Toggle value={notificationConfig?.order ?? true} label="Alertes nouvelles commandes" onChange={v => updateNotificationConfig({ order: v })} />
+        <Toggle value={notificationConfig?.supply ?? true} label="Alertes stock / ravitaillement" color="#f59e0b" onChange={v => updateNotificationConfig({ supply: v })} />
+        <Toggle value={notificationConfig?.create ?? true} label="Alertes création de ressource" color="#10b981" onChange={v => updateNotificationConfig({ create: v })} />
+        <Toggle value={notificationConfig?.enabled ?? true} label="Notifications globales activées" onChange={v => updateNotificationConfig({ enabled: v })} />
+    </div>
+);
+
+const FormAlertsClient = ({ notificationConfig, updateNotificationConfig }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Notifications clients" desc="Emails envoyés automatiquement aux acheteurs." icon={Bell} color="#ef4444" />
+        <Toggle value={notificationConfig?.sendOrderConfirmation ?? true} label="Confirmation de commande" onChange={v => updateNotificationConfig({ sendOrderConfirmation: v })} />
+        <Toggle value={notificationConfig?.sendShippingUpdate ?? true} label="Mise à jour livraison" onChange={v => updateNotificationConfig({ sendShippingUpdate: v })} />
+        <Toggle value={notificationConfig?.sendReviewRequest ?? false} label="Demande d'avis après livraison" onChange={v => updateNotificationConfig({ sendReviewRequest: v })} />
+    </div>
+);
+
+// ── PROMOTIONS ────────────────────────────
+const FormPromotionsSettings = ({ promoSettings, updatePromoSettings }) => {
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Paramètres des promotions" desc="Badges, timers et remises." icon={Flame} color="#f97316" />
+            <Toggle value={promoSettings.autoBadge} label="Badges promotionnels automatiques" desc="Affiche -X% sur les produits en promotion." onChange={v => updatePromoSettings({ autoBadge: v })} />
+            <Toggle value={promoSettings.bannerEnabled} label="Bannière promotions activée" onChange={v => updatePromoSettings({ bannerEnabled: v })} />
+            <div>
+                <SLabel>Remise minimum pour afficher le badge (%)</SLabel>
+                <SInput type="number" value={promoSettings.minDiscountPercent} onChange={e => updatePromoSettings({ minDiscountPercent: Number(e.target.value) })} placeholder="5" />
+            </div>
+            <div>
+                <SLabel>Durée timer vente flash (heures)</SLabel>
+                <SInput type="number" value={promoSettings.flashSaleTimerHours} onChange={e => updatePromoSettings({ flashSaleTimerHours: Number(e.target.value) })} placeholder="24" />
+            </div>
+        </div>
+    );
+};
+
+// ── SEO ───────────────────────────────────
+const FormSeoBasic = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="SEO & Référencement" desc="Optimisez votre visibilité sur les moteurs de recherche." icon={Search} color="#a855f7" />
+            <div><SLabel>Titre SEO</SLabel><SInput name="seoTitle" value={formData.seoTitle || ''} onChange={h} placeholder="PEOC — Équipements d'élevage..." /></div>
+            <div><SLabel>Description SEO</SLabel><STextarea name="seoDescription" value={formData.seoDescription || ''} onChange={h} placeholder="Boutique spécialisée..." /></div>
+            <div><SLabel>Mots-clés (séparés par virgules)</SLabel><SInput name="seoKeywords" value={formData.seoKeywords || ''} onChange={h} placeholder="élevage, couveuse, poussins, cameroun" /></div>
+        </div>
+    );
+};
+
+const FormSeoSocial = ({ formData, setFormData, uploadingFile, setUploadingFile, showToast }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const ogRef = useRef(null);
+    const handleUpload = async (e) => {
+        if (!e.target.files?.[0]) return;
+        setUploadingFile(true);
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        try {
+            const r = await baseApi.post('/settings/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setFormData(p => ({ ...p, ogImageUrl: r.data.data }));
+            showToast('success', 'Image OG mise à jour !');
+        } catch { showToast('error', 'Erreur upload'); }
+        finally { setUploadingFile(false); if (e.target) e.target.value = null; }
+    };
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Image de partage (Open Graph)" desc="Image affichée quand vous partagez votre site." icon={Share2} color="#a855f7" />
+            <div>
+                <SLabel>URL de l'image OG</SLabel>
+                <SInput name="ogImageUrl" value={formData.ogImageUrl || ''} onChange={h} placeholder="https://..." />
+                <div className="mt-2"><UploadBtn label="📷 Uploader" onUpload={handleUpload} loading={uploadingFile} inputRef={ogRef} /></div>
+            </div>
+            <ImagePreview url={formData.ogImageUrl} label="Aperçu image de partage" onRemove={() => setFormData(p => ({ ...p, ogImageUrl: '' }))} />
+        </div>
+    );
+};
+
+// ── AVANCÉES ──────────────────────────────
+const FormAdvancedMaintenance = ({ formData, setFormData }) => {
+    const h = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    return (
+        <div className="space-y-5">
+            <SectionTitle title="Mode Maintenance" desc="Rend la boutique inaccessible aux visiteurs." icon={Shield} color="#6b7280" />
+            <Toggle value={formData.maintenanceMode || false} label="Activer le mode maintenance"
+                desc="Affiche une page d'entretien aux visiteurs. L'admin reste accessible." color="#ef4444"
+                onChange={v => setFormData(p => ({ ...p, maintenanceMode: v }))} />
+            <div>
+                <SLabel>Message de maintenance</SLabel>
+                <STextarea name="maintenanceMessage" value={formData.maintenanceMessage || ''} onChange={h} placeholder="Site en maintenance. Retour dans quelques minutes." />
+            </div>
+        </div>
+    );
+};
+
+const FormAdvancedSecurity = ({ formData, setFormData }) => (
+    <div className="space-y-5">
+        <SectionTitle title="Sécurité & Sessions" icon={Shield} color="#6b7280" />
+        <Toggle value={formData.enforceHttps || false} label="Forcer HTTPS" onChange={v => setFormData(p => ({ ...p, enforceHttps: v }))} />
+        <Toggle value={formData.allowRegistration ?? true} label="Autoriser les inscriptions publiques" onChange={v => setFormData(p => ({ ...p, allowRegistration: v }))} />
+    </div>
+);
+
+// ═══════════════════════════════════════════
+// ROUTEUR DE FORMULAIRE
+// ═══════════════════════════════════════════
+const FORM_MAP = {
+    'identity.name':          FormIdentityName,
+    'identity.desc':          FormIdentityDesc,
+    'identity.contact':       FormIdentityContact,
+    'identity.social':        FormIdentitySocial,
+    'identity.meta':          FormIdentityMeta,
+    'stock.mode':             FormStockMode,
+    'stock.alerts':           FormStockAlerts,
+    'banners.home':           FormBannersHome,
+    'banners.promotions':     FormBannersPromotions,
+    'banners.collections':    FormBannersCollections,
+    'contact.info':           FormContactInfo,
+    'contact.address':        FormContactAddress,
+    'contact.hours':          FormContactHours,
+    'bento.config':           FormBentoConfig,
+    'alerts.admin':           FormAlertsAdmin,
+    'alerts.client':          FormAlertsClient,
+    'promotions.settings':    FormPromotionsSettings,
+    'seo.basic':              FormSeoBasic,
+    'seo.social':             FormSeoSocial,
+    'advanced.maintenance':   FormAdvancedMaintenance,
+    'advanced.security':      FormAdvancedSecurity,
+};
+
+const ActiveForm = (props) => {
+    const Form = FORM_MAP[props.active];
+    if (!Form) return (
+        <div className="text-center py-16">
+            <SettingsIcon size={40} className="mx-auto mb-3 text-gray-400 dark:text-gray-600" />
+            <p className="font-black text-lg text-slate-900 dark:text-white">Sélectionnez une rubrique</p>
+            <p className="text-sm mt-1 text-gray-500">Choisissez une catégorie dans le panneau de droite</p>
+        </div>
+    );
+    return <Form {...props} />;
+};
+
+// ═══════════════════════════════════════════
+// COMPOSANT PRINCIPAL
+// ═══════════════════════════════════════════
 const Settings = () => {
     const { settings: currentSettings, reloadSettings } = useAppContext();
     const { theme } = useTheme();
-    const { notificationConfig, updateNotificationConfig, notifySuccess } = useToast();
+    const { notificationConfig, updateNotificationConfig } = useToast();
     const { stockConfig, updateStockConfig } = useStockConfig();
     const isDark = theme === 'dark';
 
-    const [activeTab, setActiveTab] = useState('general'); // 'general' | 'collections' | 'stock' | 'contact' | 'hero' | 'bento' | 'promotions' | 'notifications'
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        siteName: '',
-        contactEmail: '',
-        contactPhone: '',
-        contactAddress: '',
-        logoUrl: '',
-        defaultCollectionBannerUrl: '',
-        bentoPoultryImageUrl: '',
-        bentoIncubatorImageUrl: '',
-        bentoFeedImageUrl: '',
-        bentoHealthImageUrl: '',
+    const [activeSection, setActiveSection]   = useState('identity.name');
+    const [openCategories, setOpenCategories] = useState({ identity: true });
+    const [isDirty, setIsDirty]               = useState(false);
+    const [loading, setLoading]               = useState(false);
+    const [uploadingFile, setUploadingFile]   = useState(false);
+    const [toast, setToast]                   = useState(null);
+    const [sysInfo, setSysInfo]               = useState(null);
+    const [dashStats, setDashStats]           = useState(null);
+    const [dashLoading, setDashLoading]       = useState(true);
+
+    const [formData, setFormDataRaw] = useState({
+        siteName: '', siteSubtitle: '', siteSlogan: '', siteDescription: '',
+        contactEmail: '', contactPhone: '', contactAddress: '', contactCity: '',
+        whatsappNumber: '', businessHours: '',
+        logoUrl: '', faviconUrl: '',
+        defaultCollectionBannerUrl: '', collectionBannerVideoUrl: '',
+        promoBannerUrl: '', promoBannerVideoUrl: '',
+        bentoPoultryImageUrl: '', bentoIncubatorImageUrl: '',
+        bentoFeedImageUrl: '', bentoHealthImageUrl: '',
+        seoTitle: '', seoDescription: '', seoKeywords: '', ogImageUrl: '',
+        facebookUrl: '', instagramUrl: '', twitterUrl: '', youtubeUrl: '',
+        maintenanceMode: false, maintenanceMessage: '',
+        enforceHttps: false, allowRegistration: true,
+        stockAlertThreshold: 5,
     });
 
-    // Paramètres locaux pour les promotions
-    const [promoSettings, setPromoSettings] = useState(() => {
-        try {
-            const saved = localStorage.getItem('techstore_promo_settings');
-            return saved ? JSON.parse(saved) : {
-                autoBadge: true,
-                bannerEnabled: true,
-                flashSaleTimerHours: 24,
-                minDiscountPercent: 5
-            };
-        } catch {
-            return { autoBadge: true, bannerEnabled: true, flashSaleTimerHours: 24, minDiscountPercent: 5 };
-        }
-    });
+    const [heroImagesUrls, setHeroImagesUrlsRaw] = useState([]);
+    const [heroVideoUrl, setHeroVideoUrlRaw]     = useState('');
 
-    const updatePromoSettings = (newSettings) => {
-        setPromoSettings(prev => {
-            const updated = { ...prev, ...newSettings };
-            try {
-                localStorage.setItem('techstore_promo_settings', JSON.stringify(updated));
-            } catch (e) {
-                console.error(e);
-            }
+    const setFormData = useCallback((updater) => {
+        setFormDataRaw(updater);
+        setIsDirty(true);
+    }, []);
+    const setHeroImagesUrls = useCallback((v) => { setHeroImagesUrlsRaw(v); setIsDirty(true); }, []);
+    const setHeroVideoUrl   = useCallback((v) => { setHeroVideoUrlRaw(v); setIsDirty(true); }, []);
+
+    const [promoSettings, setPromoSettingsRaw] = useState(() => {
+        try { const s = localStorage.getItem('techstore_promo_settings'); return s ? JSON.parse(s) : { autoBadge: true, bannerEnabled: true, flashSaleTimerHours: 24, minDiscountPercent: 5 }; }
+        catch { return { autoBadge: true, bannerEnabled: true, flashSaleTimerHours: 24, minDiscountPercent: 5 }; }
+    });
+    const updatePromoSettings = useCallback((patch) => {
+        setPromoSettingsRaw(prev => {
+            const updated = { ...prev, ...patch };
+            try { localStorage.setItem('techstore_promo_settings', JSON.stringify(updated)); } catch {}
             return updated;
         });
-    };
+        setIsDirty(true);
+    }, []);
 
-    // List of URLs for the hero slider & video
-    const [heroImagesUrls, setHeroImagesUrls] = useState([]);
-    const [heroVideoUrl, setHeroVideoUrl] = useState('');
-    
-    const [newImageLink, setNewImageLink] = useState('');
-    const [newVideoLink, setNewVideoLink] = useState('');
-    
-    const [loading, setLoading] = useState(false);
-    const [uploadingFile, setUploadingFile] = useState(false);
-    const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: string }
-
-    const imageInputRef = useRef(null);
-    const logoInputRef = useRef(null);
-    const collectionBannerRef = useRef(null);
-    const videoInputRef = useRef(null);
-    const bentoPoultryRef = useRef(null);
-    const bentoIncubatorRef = useRef(null);
-    const bentoFeedRef = useRef(null);
-    const bentoHealthRef = useRef(null);
-
+    // Chargement initial
     useEffect(() => {
         if (currentSettings) {
-            setFormData({
-                siteName: currentSettings.siteName || 'PEOC (Petit Éleveur de l\'Ouest Cameroun)',
-                contactEmail: currentSettings.contactEmail || 'contact@peoc.cm',
-                contactPhone: currentSettings.contactPhone || '+237 686 669 222',
-                contactAddress: currentSettings.contactAddress || 'Bafoussam, Ouest - Cameroun',
-                logoUrl: currentSettings.logoUrl || '',
-                bentoPoultryImageUrl: currentSettings.bentoPoultryImageUrl || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&q=80',
-                bentoIncubatorImageUrl: currentSettings.bentoIncubatorImageUrl || 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=800&q=80',
-                bentoFeedImageUrl: currentSettings.bentoFeedImageUrl || 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800&q=80',
-                bentoHealthImageUrl: currentSettings.bentoHealthImageUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80',
-            });
-            setHeroImagesUrls(currentSettings.heroImagesUrls || []);
-            setHeroVideoUrl(currentSettings.heroVideoUrl || '');
+            setFormDataRaw(p => ({
+                ...p,
+                siteName:                   currentSettings.siteName || '',
+                siteSubtitle:               currentSettings.siteSubtitle || '',
+                contactEmail:               currentSettings.contactEmail || '',
+                contactPhone:               currentSettings.contactPhone || '',
+                contactAddress:             currentSettings.contactAddress || '',
+                logoUrl:                    currentSettings.logoUrl || '',
+                defaultCollectionBannerUrl: currentSettings.defaultCollectionBannerUrl || '',
+                bentoPoultryImageUrl:       currentSettings.bentoPoultryImageUrl || '',
+                bentoIncubatorImageUrl:     currentSettings.bentoIncubatorImageUrl || '',
+                bentoFeedImageUrl:          currentSettings.bentoFeedImageUrl || '',
+                bentoHealthImageUrl:        currentSettings.bentoHealthImageUrl || '',
+            }));
+            setHeroImagesUrlsRaw(currentSettings.heroImagesUrls || []);
+            setHeroVideoUrlRaw(currentSettings.heroVideoUrl || '');
         }
     }, [currentSettings]);
+
+    // Info système + stats dashboard
+    useEffect(() => {
+        baseApi.get('/settings/info').then(r => setSysInfo(r.data?.data || r.data)).catch(() => setSysInfo(null));
+        // Stats dynamiques depuis /admin/dashboard
+        baseApi.get('/admin/dashboard')
+            .then(r => { setDashStats(r.data?.data || r.data); })
+            .catch(() => setDashStats(null))
+            .finally(() => setDashLoading(false));
+    }, []);
 
     const showToast = (type, message) => {
         setToast({ type, message });
         setTimeout(() => setToast(null), 4000);
     };
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleAddImageLink = () => {
-        if (newImageLink.trim()) {
-            setHeroImagesUrls([...heroImagesUrls, newImageLink.trim()]);
-            setNewImageLink('');
-            showToast('success', 'Image ajoutée à la liste du Hero Slider');
-        }
-    };
-
-    const handleRemoveImage = (index) => {
-        setHeroImagesUrls(heroImagesUrls.filter((_, i) => i !== index));
-    };
-
-    const handleFileUpload = async (e, type) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        const file = e.target.files[0];
-        setUploadingFile(true);
-
-        const uploadData = new FormData();
-        uploadData.append('file', file);
-
-        try {
-            const response = await baseApi.post('/settings/upload-media', uploadData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            const url = response.data.data;
-            
-            if (type === 'image') {
-                setHeroImagesUrls(prev => [...prev, url]);
-                showToast('success', 'Image ajoutée au slider avec succès !');
-            } else if (type === 'logo') {
-                setFormData(prev => ({ ...prev, logoUrl: url }));
-                showToast('success', 'Logo mis à jour avec succès !');
-            } else if (type === 'video') {
-                setHeroVideoUrl(url);
-                showToast('success', 'Vidéo d\'accueil mise à jour !');
-            } else if (type === 'bentoPoultry') {
-                setFormData(prev => ({ ...prev, bentoPoultryImageUrl: url }));
-                showToast('success', 'Visuel "Volailles & Poussins" mis à jour !');
-            } else if (type === 'bentoIncubator') {
-                setFormData(prev => ({ ...prev, bentoIncubatorImageUrl: url }));
-                showToast('success', 'Visuel "Couveuses Auto" mis à jour !');
-            } else if (type === 'bentoFeed') {
-                setFormData(prev => ({ ...prev, bentoFeedImageUrl: url }));
-                showToast('success', 'Visuel "Aliments & Granulés" mis à jour !');
-            } else if (type === 'bentoHealth') {
-                setFormData(prev => ({ ...prev, bentoHealthImageUrl: url }));
-                showToast('success', 'Visuel "Soins Vétérinaires" mis à jour !');
-            } else if (type === 'collectionBanner') {
-                setFormData(prev => ({ ...prev, defaultCollectionBannerUrl: url }));
-                showToast('success', 'Bannière par défaut des collections mise à jour !');
-            }
-        } catch (error) {
-            console.error(error);
-            showToast('error', 'Échec de l\'envoi du fichier.');
-        } finally {
-            setUploadingFile(false);
-            if (e.target) e.target.value = null;
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSave = async () => {
         setLoading(true);
         try {
-            const dataToSave = {
-                ...formData,
-                heroImagesUrls: heroImagesUrls,
-                heroVideoUrl: heroVideoUrl
-            };
-            
-            await baseApi.put('/settings', dataToSave);
+            await baseApi.put('/settings', { ...formData, heroImagesUrls, heroVideoUrl });
             await reloadSettings();
-            showToast('success', 'Tous les paramètres ont été enregistrés avec succès !');
-        } catch (error) {
-            console.error(error);
-            showToast('error', 'Erreur lors de la mise à jour des paramètres.');
-        } finally {
-            setLoading(false);
-        }
+            setIsDirty(false);
+            showToast('success', 'Paramètres enregistrés avec succès !');
+        } catch (err) {
+            console.error(err);
+            showToast('error', 'Erreur lors de l\'enregistrement.');
+        } finally { setLoading(false); }
     };
 
-    const tabs = [
-        { id: 'general', label: 'Boutique & Identité', icon: Building2, desc: 'Nom, marque et logo' },
-        { id: 'collections', label: 'Arrière-plan Collections', icon: Layers, desc: 'Bannière et photo des rayons' },
-        { id: 'stock', label: 'Gestion des Stocks', icon: PackagePlus, desc: 'Ravitaillement vs Saisie directe' },
-        { id: 'contact', label: 'Contact & Support', icon: PhoneCall, desc: 'Email, téléphone et adresse' },
-        { id: 'hero', label: 'Médias d\'Accueil', icon: ImageIcon, desc: 'Bannières et vidéo hero' },
-        { id: 'bento', label: '4 Cartes Bento Accueil', icon: LayoutGrid, desc: 'Les 4 visuels clés sous la bannière' },
-        { id: 'promotions', label: 'Promos & Remises', icon: Flame, desc: 'Comportement des offres et badges' },
-        { id: 'notifications', label: 'Alertes & Actions', icon: Bell, desc: 'Activer/Désactiver les alertes d\'actions' },
-    ];
+    const toggleCategory = (id) => setOpenCategories(p => ({ ...p, [id]: !p[id] }));
 
-    const currentTabObj = tabs.find(t => t.id === activeTab) || tabs[0];
-    const ActiveIcon = currentTabObj.icon;
+    const activeCat = CATEGORIES.find(c => c.subsections.some(s => s.id === activeSection));
+
+    // Formulaire actif : props communs
+    const formProps = {
+        active: activeSection,
+        formData, setFormData,
+        heroImagesUrls, setHeroImagesUrls,
+        heroVideoUrl, setHeroVideoUrl,
+        uploadingFile, setUploadingFile,
+        showToast,
+        stockConfig, updateStockConfig,
+        notificationConfig, updateNotificationConfig,
+        promoSettings, updatePromoSettings,
+    };
 
     return (
         <AdminLayout filters={null}>
-            <div className="max-w-6xl mx-auto py-6 px-2 sm:px-4 space-y-8">
-                
-                {/* ── HEADER ── */}
-                <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 dark:border-white/5 pb-6">
-                    <div>
-                        <div className="flex items-center gap-2 text-indigo-500 text-xs font-black uppercase tracking-widest mb-1">
-                            <Sparkles size={14} /> Centre de Configuration
-                        </div>
-                        <h2 className="text-2xl sm:text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
-                            Paramètres du Site<span className="text-indigo-500">.</span>
-                        </h2>
-                        <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-gray-400 mt-1">
-                            Configurez la marque, vos coordonnées et l'expérience visuelle publique.
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading || uploadingFile}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-indigo-500/25 disabled:opacity-50 text-xs uppercase tracking-widest shrink-0"
-                    >
-                        {loading ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
-                        <span>{loading ? 'Enregistrement...' : 'Sauvegarder tout'}</span>
-                    </button>
-                </header>
-
-                {/* ── TOAST MESSAGE ── */}
+            {/* Toast flottant */}
+            <AnimatePresence>
                 {toast && (
-                    <div className={`p-4 rounded-2xl font-bold text-xs flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-lg ${
-                        toast.type === 'success' 
-                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                            : 'bg-red-500/10 text-red-500 border border-red-500/20'
-                    }`}>
+                    <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+                        className={`fixed top-20 right-6 z-[200] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-bold
+                            ${toast.type === 'success'
+                                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+                                : 'bg-red-500/10 border border-red-500/30 text-red-500'}`}>
                         {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                        <span>{toast.message}</span>
-                    </div>
+                        {toast.message}
+                    </motion.div>
                 )}
+            </AnimatePresence>
 
-                {/* ── ORGANISATION EN MENU DÉROULANT DES PARAMÈTRES ── */}
-                <div className="space-y-3">
-                    <div className="relative">
-                        {/* Bouton du menu déroulant principal */}
-                        <button
-                            type="button"
-                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className={`w-full flex items-center justify-between p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all shadow-xl ${
-                                isDark 
-                                    ? 'bg-[#161926] border-white/10 hover:border-indigo-500/40 text-white' 
-                                    : 'bg-white border-gray-200 hover:border-indigo-500/40 text-slate-900 shadow-slate-200'
-                            }`}
-                        >
-                            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                <div className="p-3 rounded-2xl bg-indigo-600 text-white shrink-0 shadow-lg shadow-indigo-600/30">
-                                    <ActiveIcon size={22} />
-                                </div>
-                                <div className="text-left min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">
-                                            Rubrique active (cliquez pour dérouler)
-                                        </span>
-                                    </div>
-                                    <h3 className="font-black text-sm sm:text-lg uppercase tracking-wide truncate">
-                                        {currentTabObj.label}
-                                    </h3>
-                                    <p className="text-xs text-gray-400 font-medium truncate mt-0.5">
-                                        {currentTabObj.desc}
-                                    </p>
-                                </div>
-                            </div>
+            <div className="flex flex-col h-full min-h-0">
 
-                            <div className="flex items-center gap-2 pl-3 shrink-0">
-                                <span className="hidden sm:inline text-xs font-bold text-indigo-500">
-                                    Menu déroulant
-                                </span>
-                                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
-                                    {dropdownOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                </div>
-                            </div>
-                        </button>
-
-                        {/* Volet déroulant au clic */}
-                        {dropdownOpen && (
-                            <div className={`absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl sm:rounded-3xl border shadow-2xl p-2 sm:p-3 space-y-1 animate-in fade-in zoom-in-95 duration-200 max-h-96 overflow-y-auto ${
-                                isDark 
-                                    ? 'bg-[#121522] border-white/10 text-white' 
-                                    : 'bg-white border-gray-200 text-slate-800'
-                            }`}>
-                                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                                    Choisissez une section de configuration :
-                                </div>
-                                <div className="grid sm:grid-cols-2 gap-1.5">
-                                    {tabs.map(tab => {
-                                        const Icon = tab.icon;
-                                        const isSelected = activeTab === tab.id;
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setActiveTab(tab.id);
-                                                    setDropdownOpen(false);
-                                                }}
-                                                className={`flex items-center gap-3 p-3 rounded-2xl text-left transition-all w-full ${
-                                                    isSelected
-                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                                                        : isDark
-                                                            ? 'hover:bg-white/5 text-gray-300 hover:text-white'
-                                                            : 'hover:bg-slate-50 text-slate-700 hover:text-slate-900'
-                                                }`}
-                                            >
-                                                <div className={`p-2 rounded-xl shrink-0 ${
-                                                    isSelected 
-                                                        ? 'bg-white/20 text-white' 
-                                                        : isDark ? 'bg-white/5 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
-                                                }`}>
-                                                    <Icon size={18} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-bold text-xs uppercase tracking-wide truncate">
-                                                        {tab.label}
-                                                    </div>
-                                                    <div className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
-                                                        {tab.desc}
-                                                    </div>
-                                                </div>
-                                                {isSelected && <Check size={16} className="text-white shrink-0 ml-1" />}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
+                {/* ── BANNIÈRE ── */}
+                <div className={`relative overflow-hidden rounded-2xl mx-0 mb-5 ${isDark ? 'bg-[#111421]' : 'bg-gradient-to-r from-indigo-50 to-indigo-100'} border ${isDark ? 'border-white/5' : 'border-indigo-200'}`} style={{ minHeight: 100 }}>
+                    <div className={`absolute inset-0 opacity-30 ${isDark ? 'block' : 'hidden'}`}
+                        style={{ background: 'radial-gradient(circle at 70% 50%, #6366f1 0%, transparent 60%)' }} />
+                    <div className="relative z-10 p-6 flex items-center gap-5">
+                        <div className={`p-4 rounded-2xl ${isDark ? 'bg-indigo-500/20 border border-indigo-500/30' : 'bg-indigo-500/10 border border-indigo-200'}`}>
+                            <SettingsIcon size={30} className="text-indigo-500" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">Paramètres</h1>
+                            <p className="text-sm mt-0.5 text-gray-500 dark:text-gray-400">Configurez votre boutique selon vos besoins</p>
+                        </div>
                     </div>
-
-                    {/* Raccourcis de navigation rapides (pills déroulantes) */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-                        {tabs.map(t => {
-                            const isSelected = activeTab === t.id;
-                            const Icon = t.icon;
-                            return (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setActiveTab(t.id);
-                                        setDropdownOpen(false);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
-                                        isSelected
-                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                                            : isDark
-                                                ? 'bg-[#161926] text-gray-400 hover:text-white border border-white/5'
-                                                : 'bg-white text-slate-600 hover:text-slate-900 border border-gray-200'
-                                    }`}
-                                >
-                                    <Icon size={12} />
-                                    <span>{t.label}</span>
-                                </button>
-                            );
-                        })}
+                    <div className={`absolute right-10 top-3 opacity-10 ${isDark ? 'block' : 'hidden'}`}>
+                        <SettingsIcon size={80} className="text-white" />
                     </div>
                 </div>
 
-                {/* ── CONTENU DE L'ONGLET SÉLECTIONNÉ ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                    
-                    {/* COLONNE GAUCHE : FORMULAIRE */}
-                    <div className="lg:col-span-8 bg-white dark:bg-[#161926] rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 border border-gray-200 dark:border-white/5 shadow-xl">
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            
-                            {/* 1. ONGLET IDENTITÉ */}
-                            {activeTab === 'general' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                                            Identité de la Boutique
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Le nom et le logo apparaissent dans la barre de navigation, le pied de page et les factures.
-                                        </p>
-                                    </div>
+                {/* ── STATS ── */}
+                <div className={`rounded-2xl p-5 mb-5 border ${isDark ? 'bg-[#161926] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                    <div className="flex items-center gap-2 mb-4">
+                        <BarChart3 size={16} className="text-indigo-500" />
+                        <span className="font-black text-sm text-slate-900 dark:text-white">Vue d'ensemble</span>
+                        <span className="text-xs ml-2 text-gray-500">Gérez tous les paramètres de votre plateforme</span>
+                    </div>
+                    {dashLoading ? (
+                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                            {[1,2,3,4].map(i => (
+                                <div key={i} className={`rounded-2xl p-4 border animate-pulse h-24 ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-100 border-gray-200'}`} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                            <StatCard icon={ShoppingCart}
+                                value={dashStats?.totalOrdersCount != null ? dashStats.totalOrdersCount.toLocaleString('fr-FR') : '—'}
+                                label="Commandes total" color="#6366f1" />
+                            <StatCard icon={Loader2_}
+                                value={dashStats?.pendingOrdersCount != null ? dashStats.pendingOrdersCount.toLocaleString('fr-FR') : '—'}
+                                label="Commandes en attente" color="#f59e0b" />
+                            <StatCard icon={Users}
+                                value={dashStats?.totalCustomersCount != null ? dashStats.totalCustomersCount.toLocaleString('fr-FR') : '—'}
+                                label="Clients inscrits" color="#10b981" />
+                            <StatCard icon={AlertTriangle}
+                                value={dashStats?.lowStockProductsCount != null ? dashStats.lowStockProductsCount.toLocaleString('fr-FR') : '—'}
+                                label="Produits stock critique" color="#ef4444" />
+                        </div>
+                    )}
+                </div>
 
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500 dark:text-slate-400">
-                                            Nom officiel du site *
-                                        </label>
-                                        <input
-                                            required
-                                            type="text"
-                                            name="siteName"
-                                            value={formData.siteName}
-                                            onChange={handleChange}
-                                            placeholder="Ex: PEOC (Petit Éleveur de l'Ouest Cameroun)"
-                                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white transition-all"
-                                        />
-                                    </div>
-
-                                    {/* LOGO */}
-                                    <div className="space-y-3 pt-2">
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                            Logo de la Boutique
-                                        </label>
-                                        
-                                        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
-                                            <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center overflow-hidden shrink-0">
-                                                {formData.logoUrl ? (
-                                                    <img src={getFullImageUrl(formData.logoUrl)} alt="Logo" className="w-full h-full object-contain" />
-                                                ) : (
-                                                    <span className="text-2xl font-black text-indigo-500">
-                                                        {(formData.siteName || 'P').charAt(0).toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 w-full space-y-2">
-                                                <input
-                                                    type="text"
-                                                    name="logoUrl"
-                                                    value={formData.logoUrl}
-                                                    onChange={handleChange}
-                                                    placeholder="URL du logo (https://...)"
-                                                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        ref={logoInputRef}
-                                                        className="hidden"
-                                                        onChange={(e) => handleFileUpload(e, 'logo')}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => logoInputRef.current?.click()}
-                                                        disabled={uploadingFile}
-                                                        className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 flex items-center gap-1.5 py-1"
-                                                    >
-                                                        <Upload size={12} /> {uploadingFile ? 'Envoi...' : 'Uploader depuis l\'ordinateur'}
-                                                    </button>
-                                                    {formData.logoUrl && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData({ ...formData, logoUrl: '' })}
-                                                            className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-500 ml-auto"
-                                                        >
-                                                            Supprimer
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ONGLET ARRIÈRE-PLAN DES COLLECTIONS */}
-                            {activeTab === 'collections' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <div className="flex items-center gap-2 text-indigo-500 text-xs font-black uppercase tracking-widest mb-1">
-                                            <Layers size={16} /> Habillage & Bannières des Rayons
-                                        </div>
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                            Arrière-plan & Visuel des Collections
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Définissez la photo d'arrière-plan globale pour vos rayons ou personnalisez chaque collection individuellement.
-                                        </p>
-                                    </div>
-
-                                    {/* CHAMP URL BANNIÈRE PAR DÉFAUT */}
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                            Photo d'Arrière-Plan par défaut des collections
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="defaultCollectionBannerUrl"
-                                            value={formData.defaultCollectionBannerUrl || ''}
-                                            onChange={handleChange}
-                                            placeholder="https://images.unsplash.com/... (URL de la photo)"
-                                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                        />
-
-                                        {/* Suggestions de bannières */}
-                                        <div className="space-y-2 pt-1">
-                                            <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
-                                                Suggestions thématiques prêtes à l'emploi :
-                                            </span>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                                {[
-                                                    { label: 'Couveuses & Poussins', url: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=1200&q=80' },
-                                                    { label: 'Ferme & Volailles', url: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&q=80' },
-                                                    { label: 'Aliments & Granulés', url: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1200&q=80' },
-                                                    { label: 'Matériel Vétérinaire', url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80' }
-                                                ].map((sug, i) => (
-                                                    <button
-                                                        key={i}
-                                                        type="button"
-                                                        onClick={() => setFormData(prev => ({ ...prev, defaultCollectionBannerUrl: sug.url }))}
-                                                        className={`p-2.5 rounded-xl border text-left transition-all text-xs font-bold ${
-                                                            formData.defaultCollectionBannerUrl === sug.url
-                                                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                                                : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:border-indigo-500'
-                                                        }`}
-                                                    >
-                                                        {sug.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Aperçu */}
-                                        {formData.defaultCollectionBannerUrl && (
-                                            <div className="mt-3 h-36 rounded-2xl overflow-hidden relative border border-gray-200 dark:border-white/10 shadow-lg">
-                                                <img
-                                                    src={formData.defaultCollectionBannerUrl}
-                                                    alt="Bannière collection"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4">
-                                                    <span className="text-white text-xs font-black uppercase tracking-wider">
-                                                        Aperçu visuel de l'arrière-plan des collections
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Raccourci vers la gestion des collections */}
-                                    <div className="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                        <div>
-                                            <h4 className="font-black text-sm text-indigo-400 uppercase tracking-wide">
-                                                Gérer vos collections individuellement
-                                            </h4>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                Attribuez une photo d'arrière-plan propre à chaque rayon (Couveuses, Poussins, etc.) et gérez les produits associés.
-                                            </p>
-                                        </div>
-                                        <a
-                                            href="/admin/collections"
-                                            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider text-center shrink-0 transition-all shadow-lg shadow-indigo-600/30"
-                                        >
-                                            Ouvrir les Collections →
-                                        </a>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ONGLET GESTION DES STOCKS (APPROVISIONNEMENT VS SAISIE DIRECTE) */}
-                            {activeTab === 'stock' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <div className="flex items-center gap-2 text-indigo-500 text-xs font-black uppercase tracking-widest mb-1">
-                                            <PackagePlus size={16} /> Flux & Canaux d'Inventaire
-                                        </div>
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                            Modes de Gestion du Stock
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Définissez les canaux autorisés pour faire entrer du stock dans le système. Choisissez la gestion par ravitaillement, par la fiche produit, ou les deux.
-                                        </p>
-                                    </div>
-
-                                    {/* BANDEAU INDICATEUR DU WORKFLOW ACTIF */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${
-                                        stockConfig.manageStockViaSupply && stockConfig.manageStockDirectly
-                                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                                            : stockConfig.manageStockViaSupply
-                                                ? 'bg-indigo-500/10 border-indigo-500/30'
-                                                : 'bg-amber-500/10 border-amber-500/30'
-                                    }`}>
-                                        <div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">
-                                                Configuration Active (Temps Réel)
-                                            </span>
-                                            <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white flex items-center gap-2">
-                                                {stockConfig.manageStockViaSupply && stockConfig.manageStockDirectly && (
-                                                    <>
-                                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                        Mode Hybride Flexible (Ravitaillement + Saisie Directe)
-                                                    </>
-                                                )}
-                                                {stockConfig.manageStockViaSupply && !stockConfig.manageStockDirectly && (
-                                                    <>
-                                                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-                                                        Mode Ravitaillement Strict (Stock via Bons Fournisseurs Uniquement)
-                                                    </>
-                                                )}
-                                                {!stockConfig.manageStockViaSupply && stockConfig.manageStockDirectly && (
-                                                    <>
-                                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                                                        Mode Saisie Directe Produit (Ravitaillement Bloqué)
-                                                    </>
-                                                )}
-                                            </h4>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                {stockConfig.manageStockViaSupply && stockConfig.manageStockDirectly &&
-                                                    "Vous pouvez saisir le stock directement à la création de produit ET effectuer des réceptions par bons de ravitaillement."}
-                                                {stockConfig.manageStockViaSupply && !stockConfig.manageStockDirectly &&
-                                                    "La saisie de stock dans la fiche produit est verrouillée. Tout stock doit obligatoirement être réceptionné via le module Ravitaillement."}
-                                                {!stockConfig.manageStockViaSupply && stockConfig.manageStockDirectly &&
-                                                    "L'onglet Ravitaillement est verrouillé dans la barre latérale. Le stock se gère directement dans chaque fiche produit."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* INTERRUPTEUR 1 : GÉRER LE STOCK DANS LE RAVITAILLEMENT */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${
-                                        stockConfig.manageStockViaSupply
-                                            ? 'bg-indigo-600/10 border-indigo-500/30'
-                                            : isDark ? 'bg-rose-500/5 border-rose-500/20' : 'bg-rose-50 border-rose-200'
-                                    }`}>
-                                        <div className="pr-4">
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    1. Gérer le stock dans le ravitaillement (Approvisionnement)
-                                                </h4>
-                                                {stockConfig.manageStockViaSupply ? (
-                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400">
-                                                        Actif
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-rose-500/20 text-rose-400 flex items-center gap-1">
-                                                        <Lock size={10} /> Onglet Bloqué
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                Permet d'utiliser l'onglet <strong>Ravitaillement</strong> (/admin/stock) pour enregistrer les arrivages de marchandises avec fournisseurs et coûts.
-                                            </p>
-                                            {!stockConfig.manageStockViaSupply && (
-                                                <p className="text-[11px] font-bold text-rose-400 mt-1.5 flex items-center gap-1">
-                                                    ⚠️ Action-Réaction : L'onglet Ravitaillement est verrouillé et inaccessible dans la barre latérale.
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (stockConfig.manageStockViaSupply && !stockConfig.manageStockDirectly) {
-                                                    showToast('error', 'Action impossible : au moins une méthode de gestion du stock doit rester activée.');
-                                                    return;
-                                                }
-                                                const next = !stockConfig.manageStockViaSupply;
-                                                updateStockConfig({ manageStockViaSupply: next });
-                                                showToast(
-                                                    next ? 'success' : 'error',
-                                                    next ? 'Onglet Ravitaillement débloqué et accessible !' : 'Onglet Ravitaillement bloqué automatiquement (Action-Réaction) !'
-                                                );
-                                            }}
-                                            className={`w-14 h-8 rounded-full transition-colors relative p-1 cursor-pointer shrink-0 ${
-                                                stockConfig.manageStockViaSupply ? 'bg-indigo-600' : 'bg-gray-400 dark:bg-white/20'
-                                            }`}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full bg-white transition-transform shadow-md ${
-                                                stockConfig.manageStockViaSupply ? 'translate-x-6' : 'translate-x-0'
-                                            }`} />
-                                        </button>
-                                    </div>
-
-                                    {/* INTERRUPTEUR 2 : GÉRER LE STOCK LORS DE L'AJOUT D'UN PRODUIT */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${
-                                        stockConfig.manageStockDirectly
-                                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                                            : isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-200'
-                                    }`}>
-                                        <div className="pr-4">
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    2. Gérer le stock lors de l'ajout / édition d'un produit
-                                                </h4>
-                                                {stockConfig.manageStockDirectly ? (
-                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400">
-                                                        Actif
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/20 text-amber-500 flex items-center gap-1">
-                                                        <Lock size={10} /> Saisie Verrouillée
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                Permet de saisir directement les quantités en stock dans le formulaire de création de produit et dans le tableau des déclinaisons.
-                                            </p>
-                                            {!stockConfig.manageStockDirectly && (
-                                                <p className="text-[11px] font-bold text-amber-500 mt-1.5 flex items-center gap-1">
-                                                    ⚠️ Action-Réaction : Les champs de saisie du stock sont verrouillés dans le formulaire produit.
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (stockConfig.manageStockDirectly && !stockConfig.manageStockViaSupply) {
-                                                    showToast('error', 'Action impossible : au moins une méthode de gestion du stock doit rester activée.');
-                                                    return;
-                                                }
-                                                const next = !stockConfig.manageStockDirectly;
-                                                updateStockConfig({ manageStockDirectly: next });
-                                                showToast(
-                                                    next ? 'success' : 'error',
-                                                    next ? 'Saisie directe du stock activée dans les fiches produits !' : 'Saisie directe du stock verrouillée (géré via Ravitaillement) !'
-                                                );
-                                            }}
-                                            className={`w-14 h-8 rounded-full transition-colors relative p-1 cursor-pointer shrink-0 ${
-                                                stockConfig.manageStockDirectly ? 'bg-emerald-600' : 'bg-gray-400 dark:bg-white/20'
-                                            }`}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full bg-white transition-transform shadow-md ${
-                                                stockConfig.manageStockDirectly ? 'translate-x-6' : 'translate-x-0'
-                                            }`} />
-                                        </button>
-                                    </div>
-
-                                    {/* INFO TEMPS RÉEL */}
-                                    <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                        <p className="font-bold text-slate-300 dark:text-white flex items-center gap-1.5 mb-1">
-                                            ⚡ Action - Réaction (Temps Réel) :
-                                        </p>
-                                        Chaque basculement d'interrupteur prend effet instantanément dans toute l'application. Si vous désactivez le ravitaillement, l'onglet se bloque automatiquement dans la barre latérale sans nécessiter d'actualisation de la page.
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 2. ONGLET CONTACT */}
-                            {activeTab === 'contact' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                                            Coordonnées & Assistance
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Ces détails permettent aux clients de vous joindre facilement par e-mail, appel et WhatsApp.
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500 dark:text-slate-400">
-                                            Email de contact & Commandes *
-                                        </label>
-                                        <div className="relative">
-                                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                required
-                                                type="email"
-                                                name="contactEmail"
-                                                value={formData.contactEmail}
-                                                onChange={handleChange}
-                                                placeholder="contact@peoc.cm"
-                                                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-4 pl-11 pr-4 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500 dark:text-slate-400">
-                                            Numéro de téléphone / WhatsApp *
-                                        </label>
-                                        <div className="relative">
-                                            <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                required
-                                                type="text"
-                                                name="contactPhone"
-                                                value={formData.contactPhone}
-                                                onChange={handleChange}
-                                                placeholder="+237 600 000 000"
-                                                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-4 pl-11 pr-4 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500 dark:text-slate-400">
-                                            Adresse physique de la boutique *
-                                        </label>
-                                        <div className="relative">
-                                            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                required
-                                                type="text"
-                                                name="contactAddress"
-                                                value={formData.contactAddress}
-                                                onChange={handleChange}
-                                                placeholder="Bafoussam, Ouest - Cameroun"
-                                                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-4 pl-11 pr-4 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 3. ONGLET MÉDIAS HERO */}
-                            {activeTab === 'hero' && (
-                                <div className="space-y-8 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                                            Bannières & Ambiance de l'Accueil
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Gérez les images du slider d'accueil haute définition et la vidéo de présentation.
-                                        </p>
-                                    </div>
-
-                                    {/* IMAGES DU SLIDER */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                                Images du Slider d'accueil ({heroImagesUrls.length})
-                                            </label>
-                                            <span className="text-[10px] text-gray-400 font-bold">Recommandé : 1920x800 ou 16:9</span>
-                                        </div>
-
-                                        {/* Galerie des slides actuels */}
-                                        {heroImagesUrls.length > 0 ? (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                {heroImagesUrls.map((url, i) => (
-                                                    <div key={i} className="relative group rounded-2xl overflow-hidden aspect-[16/9] border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 shadow-sm">
-                                                        <img src={getFullImageUrl(url)} alt={`Slide ${i}`} className="w-full h-full object-cover" />
-                                                        <span className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-black px-2 py-0.5 rounded-md">
-                                                            Slide #{i + 1}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveImage(i)}
-                                                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                                                            aria-label="Supprimer l'image"
-                                                        >
-                                                            <X size={13} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-8 text-center border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl">
-                                                <ImageIcon size={32} className="mx-auto text-gray-400 mb-2 opacity-50" />
-                                                <p className="text-xs font-bold text-gray-400 uppercase">Aucune image dans le slider</p>
-                                            </div>
-                                        )}
-
-                                        {/* Ajouter une image (URL ou upload) */}
-                                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                                            <div className="flex-1 flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={newImageLink}
-                                                    onChange={(e) => setNewImageLink(e.target.value)}
-                                                    placeholder="Coller l'URL d'une image (https://...)"
-                                                    className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={handleAddImageLink}
-                                                    disabled={!newImageLink.trim()}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-bold flex items-center disabled:opacity-50 text-xs shrink-0"
-                                                >
-                                                    <Plus size={16} />
-                                                </button>
-                                            </div>
-
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                ref={imageInputRef}
-                                                className="hidden"
-                                                onChange={(e) => handleFileUpload(e, 'image')}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => imageInputRef.current?.click()}
-                                                disabled={uploadingFile}
-                                                className="bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-white px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shrink-0"
-                                            >
-                                                <Upload size={14} /> {uploadingFile ? 'Envoi...' : 'Uploader image'}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* VIDÉO HERO */}
-                                    <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                                Vidéo de Fond Hero (Optionnel)
-                                            </label>
-                                            {heroVideoUrl && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setHeroVideoUrl('')}
-                                                    className="text-[10px] font-black uppercase text-red-500 hover:underline"
-                                                >
-                                                    Retirer la vidéo
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {heroVideoUrl ? (
-                                            <div className="relative group rounded-2xl overflow-hidden aspect-video border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5">
-                                                <video src={heroVideoUrl} className="w-full h-full object-cover" controls playsInline />
-                                            </div>
-                                        ) : (
-                                            <div className="aspect-video rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center justify-center text-gray-400 p-6">
-                                                <Video size={32} className="mb-2 opacity-40 text-indigo-500" />
-                                                <span className="text-xs font-bold uppercase tracking-widest">Aucune vidéo active</span>
-                                                <span className="text-[10px] text-gray-400 mt-1">Le slider d'images sera affiché par défaut.</span>
-                                            </div>
-                                        )}
-
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <div className="flex-1 flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={newVideoLink}
-                                                    onChange={(e) => setNewVideoLink(e.target.value)}
-                                                    placeholder="Lien vidéo direct (ex: https://.../video.mp4)"
-                                                    className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (newVideoLink.trim()) {
-                                                            setHeroVideoUrl(newVideoLink.trim());
-                                                            setNewVideoLink('');
-                                                            showToast('success', 'Lien vidéo configuré');
-                                                        }
-                                                    }}
-                                                    disabled={!newVideoLink.trim()}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-bold flex items-center disabled:opacity-50 text-xs"
-                                                >
-                                                    <Plus size={16} />
-                                                </button>
-                                            </div>
-
-                                            <input
-                                                type="file"
-                                                accept="video/mp4,video/webm"
-                                                ref={videoInputRef}
-                                                className="hidden"
-                                                onChange={(e) => handleFileUpload(e, 'video')}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => videoInputRef.current?.click()}
-                                                disabled={uploadingFile}
-                                                className="bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-white px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shrink-0"
-                                            >
-                                                <Upload size={14} /> {uploadingFile ? 'Envoi...' : 'Uploader vidéo'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 3. BIS. ONGLET LES 4 CARTES BENTO DE L'ACCUEIL */}
-                            {activeTab === 'bento' && (
-                                <div className="space-y-8 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <div className="flex items-center gap-2 text-indigo-500 text-xs font-black uppercase tracking-widest mb-1">
-                                            <LayoutGrid size={16} /> Vitrine Bento Grid
-                                        </div>
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                                            Les 4 Cartes Sous-Bannière Accueil
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Personnalisez les 4 visuels phares affichés sur la page d'accueil juste sous la bannière principale.
-                                        </p>
-                                    </div>
-
-                                    {/* SCHÉMA VISUEL DE DISPOSITION */}
-                                    <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/50 dark:border-indigo-500/20">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block mb-3">
-                                            📐 Disposition sur la Page d'Accueil :
-                                        </span>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-bold text-center">
-                                            <div className="sm:col-span-2 p-3 rounded-xl bg-indigo-600 text-white flex flex-col justify-center items-center h-20 shadow-sm">
-                                                <span className="uppercase text-[10px] opacity-75">Carte 1 (Grand Format)</span>
-                                                <span className="text-xs font-black">Volailles & Poussins</span>
-                                            </div>
-                                            <div className="p-3 rounded-xl bg-amber-500 text-white flex flex-col justify-center items-center h-20 shadow-sm">
-                                                <span className="uppercase text-[10px] opacity-75">Carte 2 (Haut Droite)</span>
-                                                <span className="text-xs font-black">Couveuses Auto</span>
-                                            </div>
-                                            <div className="sm:col-span-2 grid grid-cols-2 gap-2">
-                                                <div className="p-3 rounded-xl bg-emerald-600 text-white flex flex-col justify-center items-center h-16 shadow-sm">
-                                                    <span className="uppercase text-[10px] opacity-75">Carte 3 (Bas Milieu)</span>
-                                                    <span className="text-xs font-black">Aliments & Granulés</span>
-                                                </div>
-                                                <div className="p-3 rounded-xl bg-teal-600 text-white flex flex-col justify-center items-center h-16 shadow-sm">
-                                                    <span className="uppercase text-[10px] opacity-75">Carte 4 (Bas Droite)</span>
-                                                    <span className="text-xs font-black">Soins Vétérinaires</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ══ CARTE 1 : VOLAILLES & POUSSINS ══ */}
-                                    <div className="p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 dark:border-white/5 pb-3">
-                                            <div>
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider mb-1">
-                                                    Carte 1 — Grand Format Gauche
-                                                </span>
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    Volailles & Poussins
-                                                </h4>
-                                                <p className="text-xs text-gray-400">Occupe 2 colonnes sur grand écran avec un affichage immersif.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, bentoPoultryImageUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&q=80' }))}
-                                                className="text-[10px] font-bold text-gray-500 hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
-                                            >
-                                                <RotateCcw size={12} /> Image par défaut
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                            <div className="md:col-span-5 aspect-[16/9] rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-black/40 relative">
-                                                <img 
-                                                    src={getFullImageUrl(formData.bentoPoultryImageUrl || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&q=80')} 
-                                                    alt="Volailles" 
-                                                    className="w-full h-full object-cover" 
-                                                />
-                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[9px] font-black text-white uppercase">Aperçu direct</span>
-                                            </div>
-                                            <div className="md:col-span-7 space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Lien URL ou Téléversement</label>
-                                                <input
-                                                    type="text"
-                                                    name="bentoPoultryImageUrl"
-                                                    value={formData.bentoPoultryImageUrl || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="https://.../poulet.jpg"
-                                                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    ref={bentoPoultryRef}
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileUpload(e, 'bentoPoultry')}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => bentoPoultryRef.current?.click()}
-                                                    disabled={uploadingFile}
-                                                    className="w-full bg-indigo-50 hover:bg-indigo-100 dark:bg-white/5 dark:hover:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-white/10 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                                >
-                                                    <Upload size={14} /> Téléverser une image depuis mon ordinateur
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ══ CARTE 2 : COUVEUSES AUTO ══ */}
-                                    <div className="p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 dark:border-white/5 pb-3">
-                                            <div>
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider mb-1">
-                                                    Carte 2 — Haut Droite
-                                                </span>
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    Couveuses Auto & Éclosion
-                                                </h4>
-                                                <p className="text-xs text-gray-400">Positionnée en haut à droite du Bento Grid.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, bentoIncubatorImageUrl: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=800&q=80' }))}
-                                                className="text-[10px] font-bold text-gray-500 hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
-                                            >
-                                                <RotateCcw size={12} /> Image par défaut
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                            <div className="md:col-span-5 aspect-[16/9] rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-black/40 relative">
-                                                <img 
-                                                    src={getFullImageUrl(formData.bentoIncubatorImageUrl || 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=800&q=80')} 
-                                                    alt="Couveuses" 
-                                                    className="w-full h-full object-cover" 
-                                                />
-                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[9px] font-black text-white uppercase">Aperçu direct</span>
-                                            </div>
-                                            <div className="md:col-span-7 space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Lien URL ou Téléversement</label>
-                                                <input
-                                                    type="text"
-                                                    name="bentoIncubatorImageUrl"
-                                                    value={formData.bentoIncubatorImageUrl || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="https://.../couveuse.jpg"
-                                                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    ref={bentoIncubatorRef}
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileUpload(e, 'bentoIncubator')}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => bentoIncubatorRef.current?.click()}
-                                                    disabled={uploadingFile}
-                                                    className="w-full bg-amber-50 hover:bg-amber-100 dark:bg-white/5 dark:hover:bg-white/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-white/10 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                                >
-                                                    <Upload size={14} /> Téléverser une image depuis mon ordinateur
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ══ CARTE 3 : ALIMENTS & GRANULÉS ══ */}
-                                    <div className="p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 dark:border-white/5 pb-3">
-                                            <div>
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">
-                                                    Carte 3 — Bas Milieu
-                                                </span>
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    Aliments & Granulés
-                                                </h4>
-                                                <p className="text-xs text-gray-400">Positionnée au milieu inférieur du Bento Grid.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, bentoFeedImageUrl: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800&q=80' }))}
-                                                className="text-[10px] font-bold text-gray-500 hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
-                                            >
-                                                <RotateCcw size={12} /> Image par défaut
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                            <div className="md:col-span-5 aspect-[16/9] rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-black/40 relative">
-                                                <img 
-                                                    src={getFullImageUrl(formData.bentoFeedImageUrl || 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800&q=80')} 
-                                                    alt="Aliments" 
-                                                    className="w-full h-full object-cover" 
-                                                />
-                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[9px] font-black text-white uppercase">Aperçu direct</span>
-                                            </div>
-                                            <div className="md:col-span-7 space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Lien URL ou Téléversement</label>
-                                                <input
-                                                    type="text"
-                                                    name="bentoFeedImageUrl"
-                                                    value={formData.bentoFeedImageUrl || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="https://.../aliment.jpg"
-                                                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    ref={bentoFeedRef}
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileUpload(e, 'bentoFeed')}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => bentoFeedRef.current?.click()}
-                                                    disabled={uploadingFile}
-                                                    className="w-full bg-emerald-50 hover:bg-emerald-100 dark:bg-white/5 dark:hover:bg-white/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-white/10 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                                >
-                                                    <Upload size={14} /> Téléverser une image depuis mon ordinateur
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ══ CARTE 4 : SOINS VÉTÉRINAIRES ══ */}
-                                    <div className="p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 dark:border-white/5 pb-3">
-                                            <div>
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-600/10 text-teal-600 dark:text-teal-400 text-[10px] font-black uppercase tracking-wider mb-1">
-                                                    Carte 4 — Bas Droite
-                                                </span>
-                                                <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                    Soins Vétérinaires & Hygiène
-                                                </h4>
-                                                <p className="text-xs text-gray-400">Positionnée en bas à droite du Bento Grid.</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, bentoHealthImageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80' }))}
-                                                className="text-[10px] font-bold text-gray-500 hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
-                                            >
-                                                <RotateCcw size={12} /> Image par défaut
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                            <div className="md:col-span-5 aspect-[16/9] rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-black/40 relative">
-                                                <img 
-                                                    src={getFullImageUrl(formData.bentoHealthImageUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80')} 
-                                                    alt="Soins" 
-                                                    className="w-full h-full object-cover" 
-                                                />
-                                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[9px] font-black text-white uppercase">Aperçu direct</span>
-                                            </div>
-                                            <div className="md:col-span-7 space-y-3">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Lien URL ou Téléversement</label>
-                                                <input
-                                                    type="text"
-                                                    name="bentoHealthImageUrl"
-                                                    value={formData.bentoHealthImageUrl || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="https://.../soins.jpg"
-                                                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    ref={bentoHealthRef}
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileUpload(e, 'bentoHealth')}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => bentoHealthRef.current?.click()}
-                                                    disabled={uploadingFile}
-                                                    className="w-full bg-teal-50 hover:bg-teal-100 dark:bg-white/5 dark:hover:bg-white/10 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-white/10 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                                >
-                                                    <Upload size={14} /> Téléverser une image depuis mon ordinateur
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 4. ONGLET ALERTES & NOTIFICATIONS D'ACTIONS */}
-                            {activeTab === 'notifications' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                            <Bell size={20} className="text-indigo-500" /> Notifications & Alertes d'Actions
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Activez ou désactivez les notifications en temps réel pour chaque action (ajout, modification, suppression, ravitaillement, commandes).
-                                        </p>
-                                    </div>
-
-                                    {/* INTERRUPTEUR GÉNÉRAL */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between ${
-                                        notificationConfig.enabled
-                                            ? 'bg-indigo-600/10 border-indigo-500/30'
-                                            : isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-200'
-                                    }`}>
-                                        <div>
-                                            <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                Système global de notifications
-                                            </h4>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                Active ou désactive complètement toutes les bulles d'alerte.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateNotificationConfig({ enabled: !notificationConfig.enabled })}
-                                            className={`w-14 h-8 rounded-full transition-colors relative p-1 cursor-pointer ${
-                                                notificationConfig.enabled ? 'bg-indigo-600' : 'bg-gray-400 dark:bg-white/20'
-                                            }`}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full bg-white transition-transform ${
-                                                notificationConfig.enabled ? 'translate-x-6' : 'translate-x-0'
-                                            }`} />
-                                        </button>
-                                    </div>
-
-                                    {/* LISTE DES OPTIONS PAR ACTION */}
-                                    <div className="space-y-3 pt-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                            Alertes par type d'action
-                                        </label>
-
-                                        {[
-                                            { key: 'create', title: 'Ajouts (Créations)', desc: 'Nouveau produit, nouveau rayon, nouveau fournisseur ajouté' },
-                                            { key: 'update', title: 'Modifications', desc: 'Produit édité, prix ajusté, paramètres enregistrés' },
-                                            { key: 'delete', title: 'Suppressions', desc: 'Produit supprimé, rayon retiré, partenaire archivé' },
-                                            { key: 'supply', title: 'Ravitaillements de stock', desc: 'Entrée physique de stock et calcul du nouveau stock total' },
-                                            { key: 'order', title: 'Mise à jour des commandes', desc: 'Changement de statut (payé, expédié, livré)' },
-                                        ].map((item) => {
-                                            const isChecked = notificationConfig[item.key] !== false;
-                                            return (
-                                                <div 
-                                                    key={item.key}
-                                                    className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
-                                                        !notificationConfig.enabled 
-                                                            ? 'opacity-40 pointer-events-none' 
-                                                            : isChecked 
-                                                                ? isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-gray-200' 
-                                                                : isDark ? 'bg-black/20 border-white/5' : 'bg-white border-gray-100'
-                                                    }`}
-                                                >
-                                                    <div className="min-w-0 pr-4">
-                                                        <h5 className="font-bold text-xs uppercase tracking-tight text-slate-900 dark:text-white">
-                                                            {item.title}
-                                                        </h5>
-                                                        <p className="text-[11px] text-gray-400 mt-0.5 truncate">
-                                                            {item.desc}
-                                                        </p>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateNotificationConfig({ [item.key]: !isChecked })}
-                                                        className={`w-12 h-7 rounded-full transition-colors relative p-1 cursor-pointer shrink-0 ${
-                                                            isChecked ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-white/10'
-                                                        }`}
-                                                    >
-                                                        <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                                                            isChecked ? 'translate-x-5' : 'translate-x-0'
-                                                        }`} />
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 5. ONGLET PARAMÈTRES DES PROMOTIONS */}
-                            {activeTab === 'promotions' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <div className="border-b border-gray-100 dark:border-white/5 pb-4">
-                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                            <Flame size={20} className="text-red-500 fill-red-500" /> Paramètres des Promotions & Ventes Flash
-                                        </h3>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Personnalisez les badges de remise, le bandeau d'accueil et le seuil minimal de promotion.
-                                        </p>
-                                    </div>
-
-                                    {/* BADGE AUTOMATIQUE */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between ${
-                                        promoSettings.autoBadge
-                                            ? 'bg-red-500/10 border-red-500/30'
-                                            : isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-200'
-                                    }`}>
-                                        <div>
-                                            <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                Affichage automatique des Badges "-X%"
-                                            </h4>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                Affiche automatiquement un macaron rouge avec le pourcentage de remise calculé sur les fiches produits.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => updatePromoSettings({ autoBadge: !promoSettings.autoBadge })}
-                                            className={`w-14 h-8 rounded-full transition-colors relative p-1 cursor-pointer ${
-                                                promoSettings.autoBadge ? 'bg-red-500' : 'bg-gray-400 dark:bg-white/20'
-                                            }`}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full bg-white transition-transform ${
-                                                promoSettings.autoBadge ? 'translate-x-6' : 'translate-x-0'
-                                            }`} />
-                                        </button>
-                                    </div>
-
-                                    {/* BANNIÈRE PROMOTION SUR L'ACCUEIL */}
-                                    <div className={`p-5 rounded-2xl border flex items-center justify-between ${
-                                        promoSettings.bannerEnabled
-                                            ? 'bg-indigo-600/10 border-indigo-500/30'
-                                            : isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-200'
-                                    }`}>
-                                        <div>
-                                            <h4 className="font-black text-sm uppercase text-slate-900 dark:text-white">
-                                                Section Ventes Flash sur la Page d'Accueil
-                                            </h4>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                Met en avant le carrousel des meilleures promotions dès la page d'accueil.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => updatePromoSettings({ bannerEnabled: !promoSettings.bannerEnabled })}
-                                            className={`w-14 h-8 rounded-full transition-colors relative p-1 cursor-pointer ${
-                                                promoSettings.bannerEnabled ? 'bg-indigo-600' : 'bg-gray-400 dark:bg-white/20'
-                                            }`}
-                                        >
-                                            <div className={`w-6 h-6 rounded-full bg-white transition-transform ${
-                                                promoSettings.bannerEnabled ? 'translate-x-6' : 'translate-x-0'
-                                            }`} />
-                                        </button>
-                                    </div>
-
-                                    {/* SEUIL MINIMAL DE REMISE (%) */}
-                                    <div className="space-y-3 pt-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                            Pourcentage minimum pour considérer un article comme "En Promotion"
-                                        </label>
-                                        <div className="flex items-center gap-4">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="50"
-                                                value={promoSettings.minDiscountPercent || 5}
-                                                onChange={(e) => updatePromoSettings({ minDiscountPercent: Number(e.target.value) })}
-                                                className="w-32 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-sm font-black outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                                            />
-                                            <span className="text-xs font-bold text-gray-400">% de réduction requise</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* BOUTON ENREGISTRER DANS LE FORMULAIRE */}
-                            <div className="pt-6 border-t border-gray-100 dark:border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                                <span className="text-[11px] text-gray-400 font-medium text-center sm:text-left">
-                                    Modifications enregistrées instantanément dans la base de données.
-                                </span>
-                                <button
-                                    type="submit"
-                                    disabled={loading || uploadingFile}
-                                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-6 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 text-xs uppercase tracking-wider disabled:opacity-50"
-                                >
-                                    {loading ? <Loader className="animate-spin" size={15} /> : <Save size={15} />}
-                                    <span>{loading ? 'Enregistrement...' : 'Enregistrer'}</span>
-                                </button>
-                            </div>
-                        </form>
+                {/* ── APERÇU + SYSTÈME ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                    <div className={`rounded-2xl p-5 border ${isDark ? 'bg-[#161926] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Eye size={15} className="text-indigo-500" />
+                            <span className="font-black text-sm text-slate-900 dark:text-white">Aperçu de votre boutique</span>
+                            <span className="text-xs text-gray-500">Visualisez rapidement votre boutique en ligne</span>
+                        </div>
+                        <div className={`rounded-xl mb-3 h-24 flex items-center justify-center border ${isDark ? 'bg-[#0b0e14] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                            <span className="text-xs text-gray-400">Votre boutique en ligne</span>
+                        </div>
+                        <a href="/" target="_blank" rel="noopener noreferrer"
+                            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all
+                                ${isDark ? 'border-white/10 text-gray-400 hover:border-indigo-500 hover:text-white' : 'border-gray-200 text-gray-500 hover:border-indigo-500 hover:text-indigo-600'}`}>
+                            <ExternalLink size={13} /> Voir la boutique
+                        </a>
                     </div>
 
-                    {/* COLONNE DROITE : APERÇU EN DIRECT (LIVE PREVIEW) */}
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white dark:bg-[#161926] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/5 shadow-xl">
-                            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-white/5">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-1.5">
-                                    <Eye size={12} /> Aperçu Public
-                                </span>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase">Temps Réel</span>
+                    <div className={`rounded-2xl p-5 border ${isDark ? 'bg-[#161926] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Server size={15} className="text-indigo-500" />
+                                <span className="font-black text-sm text-slate-900 dark:text-white">Informations système</span>
                             </div>
+                            <span className="text-xs font-black px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> En ligne
+                            </span>
+                        </div>
+                        <div className="space-y-2 mb-3">
+                            {[
+                                { label: 'Base de données', value: sysInfo?.database || 'MySQL (Aiven)' },
+                                { label: 'Serveur', value: sysInfo?.server || 'Tomcat 10.1' },
+                                { label: 'Dernière mise à jour', value: new Date().toLocaleDateString('fr-FR') },
+                            ].map(({ label, value }) => (
+                                <div key={label} className={`flex items-center justify-between py-1.5 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                    <span className="text-xs text-gray-500">{label}</span>
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white">{value}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-500 flex items-center gap-2">
+                            <CheckCircle2 size={13} /> Tous les systèmes fonctionnent parfaitement !
+                        </div>
+                    </div>
+                </div>
 
-                            {/* Header simulation */}
-                            <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4 mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-md shadow-indigo-500/30">
-                                        {formData.logoUrl ? (
-                                            <img src={getFullImageUrl(formData.logoUrl)} alt="Logo" className="w-full h-full object-contain rounded-xl" />
-                                        ) : (
-                                            (formData.siteName || 'T').charAt(0).toUpperCase()
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="font-black text-sm text-slate-900 dark:text-white truncate uppercase">
-                                            {formData.siteName || 'TechStore'}
-                                        </p>
-                                        <p className="text-[9px] text-gray-400 truncate">techstore.cm</p>
-                                    </div>
-                                </div>
-                            </div>
+                {/* ── ZONE PRINCIPALE : FORMULAIRE + PANNEAU DROIT ── */}
+                <div className="flex gap-4" style={{ minHeight: 500 }}>
 
-                            {/* Contact simulation */}
-                            <div className="space-y-2.5 text-xs">
-                                <div className="flex items-center gap-2.5 text-gray-500 dark:text-gray-400">
-                                    <Mail size={13} className="text-indigo-500 shrink-0" />
-                                    <span className="truncate">{formData.contactEmail || 'Non configuré'}</span>
-                                </div>
-                                <div className="flex items-center gap-2.5 text-gray-500 dark:text-gray-400">
-                                    <Phone size={13} className="text-emerald-500 shrink-0" />
-                                    <span className="truncate">{formData.contactPhone || 'Non configuré'}</span>
-                                </div>
-                                <div className="flex items-center gap-2.5 text-gray-500 dark:text-gray-400">
-                                    <MapPin size={13} className="text-red-500 shrink-0" />
-                                    <span className="truncate">{formData.contactAddress || 'Non configuré'}</span>
-                                </div>
-                            </div>
-
-                            {/* Hero summary */}
-                            <div className="mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Visuel d'accueil</p>
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-gray-300">
-                                    <span>Slider ({heroImagesUrls.length} slides)</span>
-                                    <span className={heroVideoUrl ? 'text-indigo-500' : 'text-gray-400'}>
-                                        {heroVideoUrl ? '🎬 Vidéo activée' : 'Photos uniquement'}
+                    {/* FORMULAIRE CENTRAL */}
+                    <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar" style={{ maxHeight: 600 }}>
+                        <div className={`rounded-2xl p-6 border min-h-full ${isDark ? 'bg-[#161926] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            {/* Breadcrumb */}
+                            {activeCat && (
+                                <div className="flex items-center gap-2 mb-5 text-xs">
+                                    {React.createElement(activeCat.icon, { size: 13, style: { color: activeCat.color } })}
+                                    <span className="text-gray-400">{activeCat.label}</span>
+                                    <ChevronRight size={11} className="text-gray-400" />
+                                    <span className="font-bold text-slate-900 dark:text-white">
+                                        {activeCat.subsections.find(s => s.id === activeSection)?.label}
                                     </span>
                                 </div>
-                            </div>
+                            )}
+
+                            <AnimatePresence mode="wait">
+                                <motion.div key={activeSection}
+                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                                    <ActiveForm {...formProps} />
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
                     </div>
 
+                    {/* ── PANNEAU ACCORDÉON DROIT ── */}
+                    <div className="hidden lg:flex flex-col w-72 shrink-0" style={{ maxHeight: 600 }}>
+                        <div className={`rounded-2xl border flex flex-col overflow-hidden ${isDark ? 'bg-[#111421] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`} style={{ height: '100%' }}>
+                            {/* En-tête */}
+                            <div className={`p-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'} shrink-0`}>
+                                <div className="flex items-center gap-2">
+                                    <SettingsIcon size={15} className="text-indigo-500" />
+                                    <span className="font-black text-sm text-slate-900 dark:text-white">Paramètres</span>
+                                </div>
+                                <p className="text-xs mt-0.5 text-gray-500">Choisissez une catégorie à configurer</p>
+                            </div>
+
+                            {/* Liste avec scrollbar visible */}
+                            <div className="overflow-y-auto p-2 space-y-0.5 custom-scrollbar" style={{ flex: 1, minHeight: 0 }}>
+                                {CATEGORIES.map(cat => {
+                                    const CatIcon = cat.icon;
+                                    const isOpen = !!openCategories[cat.id];
+                                    const isCatActive = activeCat?.id === cat.id;
+
+                                    return (
+                                        <div key={cat.id}>
+                                            <button type="button" onClick={() => toggleCategory(cat.id)}
+                                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group
+                                                    ${isCatActive
+                                                        ? isDark ? 'bg-indigo-600/20 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200'
+                                                        : isDark ? 'hover:bg-white/5 border border-transparent' : 'hover:bg-gray-50 border border-transparent'
+                                                    }`}>
+                                                <div className="p-2 rounded-lg shrink-0" style={{ background: `${cat.color}20` }}>
+                                                    <CatIcon size={15} style={{ color: cat.color }} />
+                                                </div>
+                                                <div className="flex-1 text-left min-w-0">
+                                                    <p className="text-xs font-black text-slate-900 dark:text-white truncate">{cat.label}</p>
+                                                    <p className="text-[10px] text-gray-500 truncate">{cat.desc}</p>
+                                                </div>
+                                                <ChevronDown size={13} className="text-gray-400 shrink-0 transition-transform duration-200"
+                                                    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {isOpen && (
+                                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
+                                                        <div className="pl-4 py-1 space-y-0.5">
+                                                            {cat.subsections.map(sub => {
+                                                                const isActive = activeSection === sub.id;
+                                                                return (
+                                                                    <button key={sub.id} type="button" onClick={() => setActiveSection(sub.id)}
+                                                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all
+                                                                            ${isActive
+                                                                                ? 'text-white font-bold'
+                                                                                : isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-slate-800 hover:bg-gray-50'
+                                                                            }`}
+                                                                        style={{ background: isActive ? cat.color : undefined }}>
+                                                                        <span className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                                            style={{ background: isActive ? '#fff' : cat.color }} />
+                                                                        <span className="text-xs truncate">{sub.label}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── BARRE DE SAUVEGARDE (footer) ── */}
+                <div className={`mt-4 px-5 py-3 rounded-2xl flex items-center justify-between gap-4 border ${isDark ? 'bg-[#111421] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'}`}>
+                            <span className="text-xs font-black text-indigo-500">PEOC v1.0.0</span>
+                        </div>
+                        <span className="text-xs text-gray-500 hidden sm:inline">Tableau de bord d'administration</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {isDirty ? (
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                                <span className="text-xs font-bold text-orange-400">Non enregistré</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5">
+                                <CheckCircle2 size={13} className="text-emerald-500" />
+                                <span className="text-xs text-gray-500">
+                                    Dernière sauvegarde : {new Date().toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        )}
+                        <button type="button" onClick={handleSave} disabled={loading || uploadingFile || !isDirty}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-black uppercase tracking-wider transition-all
+                                bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20">
+                            {loading ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
+                            {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Mobile : bouton flottant pour ouvrir le panneau droit */}
+                <div className="lg:hidden">
+                    <MobileSettingsPanel
+                        categories={CATEGORIES}
+                        openCategories={openCategories}
+                        toggleCategory={toggleCategory}
+                        activeSection={activeSection}
+                        setActiveSection={setActiveSection}
+                        activeCat={activeCat}
+                        isDark={isDark}
+                    />
                 </div>
             </div>
         </AdminLayout>
+    );
+};
+
+// ── Panneau mobile (drawer) ──────────────
+const MobileSettingsPanel = ({ categories, openCategories, toggleCategory, activeSection, setActiveSection, activeCat, isDark }) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <>
+            <button type="button" onClick={() => setOpen(true)}
+                className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-indigo-600 text-white shadow-2xl shadow-indigo-500/30">
+                <SettingsIcon size={20} />
+            </button>
+            <AnimatePresence>
+                {open && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setOpen(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]" />
+                        <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25 }}
+                            className={`fixed right-0 top-0 h-full w-72 z-[160] flex flex-col ${isDark ? 'bg-[#111421]' : 'bg-white'} shadow-2xl`}>
+                            <div className={`p-4 border-b flex items-center justify-between ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                <span className="font-black text-sm text-slate-900 dark:text-white">Paramètres</span>
+                                <button onClick={() => setOpen(false)} className="p-2 rounded-lg text-gray-400 hover:text-gray-600">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-0.5">
+                                {categories.map(cat => {
+                                    const CatIcon = cat.icon;
+                                    const isOpen = !!openCategories[cat.id];
+                                    const isCatActive = activeCat?.id === cat.id;
+                                    return (
+                                        <div key={cat.id}>
+                                            <button type="button" onClick={() => toggleCategory(cat.id)}
+                                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isCatActive ? 'bg-indigo-500/15' : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
+                                                <div className="p-2 rounded-lg" style={{ background: `${cat.color}20` }}>
+                                                    <CatIcon size={14} style={{ color: cat.color }} />
+                                                </div>
+                                                <div className="flex-1 text-left min-w-0">
+                                                    <p className="text-xs font-black text-slate-900 dark:text-white truncate">{cat.label}</p>
+                                                </div>
+                                                <ChevronDown size={12} className="text-gray-400 transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                                            </button>
+                                            <AnimatePresence>
+                                                {isOpen && (
+                                                    <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                                                        <div className="pl-4 py-1 space-y-0.5">
+                                                            {cat.subsections.map(sub => {
+                                                                const isActive = activeSection === sub.id;
+                                                                return (
+                                                                    <button key={sub.id} type="button"
+                                                                        onClick={() => { setActiveSection(sub.id); setOpen(false); }}
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
+                                                                        style={{ background: isActive ? cat.color : undefined, color: isActive ? '#fff' : undefined }}>
+                                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: isActive ? '#fff' : cat.color }} />
+                                                                        {sub.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 

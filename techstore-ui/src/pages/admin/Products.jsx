@@ -601,8 +601,9 @@ const AdminProducts = () => {
                             setSelectedProduct(null);
                         } catch (err) {
                             console.error("Détail erreur enregistrement :", err);
-                            const errMsg = err.response?.data?.message || err.message || "Erreur lors de l'enregistrement.";
-                            notifyError(errMsg, "Erreur Serveur");
+                            const serverMsg = err.response?.data?.message || err.response?.data?.error;
+                            const errMsg = serverMsg || err.message || "Erreur lors de l'enregistrement.";
+                            notifyError(errMsg, `Erreur ${err.response?.status || 'Serveur'}`);
                         }
                     }} 
                 />
